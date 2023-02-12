@@ -27,6 +27,15 @@ jobs:
         echo "free space after cleanup:"
         df -h
 
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+
     - name: Generate details for creating release notes
       id: generate-release-details
       shell: bash
