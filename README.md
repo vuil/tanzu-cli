@@ -1,10 +1,15 @@
 # Tanzu Core CLI
 
-:warning: NOTE: This repository is still under early development. We plan to
-make releases available for evaluation in the second quarter of 2023.  Please
-watch this page for further updates.
+VVV
+ALSO: [RUNTIME README](../TZR/README.md)
+
+:warning: NOTE: This repository is still under early development. We hope to be
+make releases available for evaluation in early February 2023.  Please watch
+this page for further updates.
 
 ## Overview
+
+VVV: diagram maybe?
 
 The Tanzu Core CLI project provides the core functionality of the Tanzu CLI.
 The CLI is based on a plugin architecture where CLI command functionality can
@@ -16,17 +21,32 @@ plugins integrate with. Said binary serves the role of
 1. providing dispatching of CLI command invocation to a specific plugin
 1. providing authentication with and managing access to endpoints which certain CLI commands will target
 
+To facilitate plugin development, the Core CLI also provides
+
+1. the ability to scaffold new plugin projects and plugin commands themselves.
+1. the capability to build, test, and publish the plugins being developed.
+
+## Installation
+
+For information on how to install the CLI, See the [Installation Guide](docs/quickstart/install.md)
+
+## Documentation
+
+Get started with the [Quick Start guide](docs/quickstart/quickstart.md) or visit the [full documentation](docs/full/main.md)
+
 ## Development
 
-Details about how to get started with development for this project can be found
-in the development [guide](docs/dev.md).
+Details about how to get started with development for this project can be found in the [development guide](docs/dev/main.md).
+
+## Plugin Development
+
+If you are instead interested in how to develop a Tanzu CLI plugin, please visit the [Tanzu plugin development guide](docs/plugindev/main.md).
 
 ## Contributing
 
 Thanks for taking the time to join our community and start contributing! We
-welcome pull requests. Feel free to dig through the
-[issues](https://github.com/vmware-tanzu/tanzu-cli/issues) and jump in.
+welcome pull requests. Feel free to dig through the [issues](https://github.com/vmware-tanzu/tanzu-cli/issues) and jump in.
 
 ### Before you begin
 
-* Check out the [contribution guidelines](CONTRIBUTING.md) to learn more about how to contribute.
+* Check out the [contribution guidelines](../CONTRIBUTING.md) to learn more about how to contribute.
