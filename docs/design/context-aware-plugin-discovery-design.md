@@ -7,7 +7,12 @@ VVV: break into
 
 ## Abstract
 
-The Tanzu CLI is an amalgamation of all the Tanzu infrastructure elements under one unified core CLI experience. The core CLI supports a plugin model where the developers of different Tanzu services (bundled or SaaS) can distribute plugins that target functionalities of the services they own. When users switch between different services via the CLI context, we want to surface only the relevant plugins for the given context for a crisp user experience.
+The Tanzu CLI is an amalgamation of all the Tanzu infrastructure elements under
+one unified core CLI experience. The core CLI supports a plugin model where the
+developers of different Tanzu services (bundled or SaaS) can distribute plugins
+that target functionalities of the services they own. When users switch between
+different services via the CLI context, we want to surface only the relevant
+plugins for the given context for a crisp user experience.
 
 ## Key Concepts
 
@@ -33,15 +38,28 @@ The Tanzu CLI is an amalgamation of all the Tanzu infrastructure elements under 
 
 ### Version Compatibility
 
-When a user is working with multiple instances of a product, we want to automatically select the right set of plugins and plugin versions for use with the instance they’ve connected to. Concretely, using two versions of a product shouldn’t require multiple “installations” of the Tanzu CLI.
+When a user is working with multiple instances of a product, we want to
+automatically select the right set of plugins and plugin versions for use with
+the instance they’ve connected to. Concretely, using two versions of a product
+shouldn’t require multiple “installations” of the Tanzu CLI.
 
 ### Feature Availability
 
-As more services start adopting the Tanzu CLI for distributing their CLI, the number of available plugins becomes large and creates clutter. We want to make it seamless for the users to understand which plugins (features) are available when they are using a given context on the Tanzu CLI. Also, for some services, some of the features can be gated behind user SKU or feature flags.
+As more services start adopting the Tanzu CLI for distributing their CLI, the
+number of available plugins becomes large and creates clutter. We want to make
+it seamless for the users to understand which plugins (features) are available
+when they are using a given context on the Tanzu CLI. Also, for some services,
+some of the features can be gated behind user SKU or feature flags.
 
 ### Name Conflicts
 
-The same plugin/command could be available for different control planes; TMC, TKG, TSM, and more, with different APIs and different capabilities. This creates conflicts in plugin names across control planes. Example: TCE, TKG and TMC have their own version of the cluster plugin for cluster life cycle operations but targeting different APIs and endpoints. In some cases even different versions of the same service could require different versions of the same plugin.
+The same plugin/command could be available for different control planes; TMC,
+TKG, TSM, and more, with different APIs and different capabilities. This
+creates conflicts in plugin names across control planes. Example: TCE, TKG and
+TMC have their own version of the cluster plugin for cluster life cycle
+operations but targeting different APIs and endpoints. In some cases even
+different versions of the same service could require different versions of the
+same plugin.
 
 ## Goals
 
@@ -77,7 +95,7 @@ As a developer I want to,
 
 ## Requirements
 
-- Generic interface in tanzu-framework to discover and download plugins either standalone or for the current context
+- Provide an interface to discover and download plugins either standalone or for the current context
 - Sophisticated version constraints that can be enforced from the server side
 - Unified plugin object schema for discovery and distribution that can be easily adopted by different services
 - Local index of all installed plugins with the ability to differentiate between different versions and sources for similar plugins
@@ -93,9 +111,23 @@ VVV: need updated diagram
 
 ### Plugin Discovery
 
-Discovery is the interface to fetch the list of available plugins, their supported versions and how to download them either standalone or scoped to a server. E.g., the CLIPlugin API in a management cluster, a similar REST API in TMC, a manifest file in GCP, etc. Unsupported plugins and plugin versions are not returned by the interface. Having a separate interface for discovery helps to decouple discovery (which is usually tied to a server or user identity) from distribution (which can be shared). For MVP, the discovery interface will use the same authentication configuration as the server to fetch relevant plugins by server and user identity. In future, this can be made configurable.
+Discovery is the interface to fetch the list of available plugins, their
+supported versions and how to download them either standalone or scoped to a
+server. E.g., the CLIPlugin API in a management cluster, a similar REST API in
+TMC, a manifest file in GCP, etc. Unsupported plugins and plugin versions are
+not returned by the interface. Having a separate interface for discovery helps
+to decouple discovery (which is usually tied to a server or user identity) from
+distribution (which can be shared). For MVP, the discovery interface will use
+the same authentication configuration as the server to fetch relevant plugins
+by server and user identity. In future, this can be made configurable.
 
-On initialization, the tanzu CLI provides a default standalone discovery source without any authentication for all client-only plugins like login, builder, and codegen. On login, every server type (management cluster or global control plane) provides a default context-scoped discovery source. In future, there can be multiple sources of discovery each with its own authentication configuration under the same context. These can be combined into one logical source via a multi-source discovery implementation similar to the current multi-repo object.
+On initialization, the tanzu CLI provides a default standalone discovery source
+without any authentication for all client-only plugins like login, builder, and
+codegen. On login, every server type (management cluster or global control
+plane) provides a default context-scoped discovery source. In future, there can
+be multiple sources of discovery each with its own authentication configuration
+under the same context. These can be combined into one logical source via a
+multi-source discovery implementation similar to the current multi-repo object.
 
 ```go
 // Discovery is an interface to fetch the list of available plugins.
@@ -113,12 +145,19 @@ type Discovery interface {
 
 ### Distribution
 
-Distribution is the interface to download a plugin version binary for a given OS and architecture combination. E.g., a local file-system, an OCI compliant image repository, etc. In most cases plugin discovery usually happens via a Tanzu service and distribution usually happens via some third party artifact repository service. So, having the separation in the interface only feels natural. It also provides the following advantages,
+Distribution is the interface to download a plugin version binary for a given
+OS and architecture combination. E.g., a local file-system, an OCI compliant
+image repository, etc. In most cases plugin discovery usually happens via a
+Tanzu service and distribution usually happens via some third party artifact
+repository service. So, having the separation in the interface only feels
+natural. It also provides the following advantages,
 
 - Can distribute the same set of plugins via different mechanisms either for redundancy or for location preferences
 - Ability to separate the security concerns of the discovery mechanism from that of the distribution mechanism
 
-The specific distribution mechanism of a plugin shall be provided by the discovery source. This allows different discovery sources to distribute their plugins as they see fit.
+The specific distribution mechanism of a plugin shall be provided by the
+discovery source. This allows different discovery sources to distribute their
+plugins as they see fit.
 
 ```go
 // Distribution is an interface to download a single plugin binary.
@@ -132,7 +171,11 @@ type Distribution interface {
 
 ### Available Plugin
 
-Combining all the above components together, the plugin object returned by the discovery interface is defined as below. Also, for service owners to distribute plugins that other plugins depend on for multiple use cases we add a flag to mark a plugin as required. Plugins marked required shall be downloaded by default when logging in to a server.
+Combining all the above components together, the plugin object returned by the
+discovery interface is defined as below. Also, for service owners to distribute
+plugins that other plugins depend on for multiple use cases we add a flag to
+mark a plugin as required. Plugins marked required shall be downloaded by
+default when logging in to a server.
 
 ```go
 // Discovered defines discovered plugin resource
@@ -187,14 +230,16 @@ type Discovered struct {
 
 ### Installation Directory Structure
 
-The plugin installations shall be organized similar to the structure of the Golang modules cache.
-The installation path is, ${InstallationRoot}/${PluginName}/${Version}_${sha256}_${target}. This has the following advantages,
+The plugin installations shall be organized similar to the structure of the
+Golang modules cache. The installation path is,
+${InstallationRoot}/${PluginName}/${Version}_${sha256}_${target}. This has the
+following advantages,
 
 - Local or development plugins can be handled similar to downloaded ones because the digest shall be different.
 - In case a plugin image is copied to a new repository, the binary need not be re-downloaded, since the digest will be the same.
 - Easy to look-up all the installed versions for a given plugin.
 
- A sample installation tree can be found below.
+A sample installation tree can be found below.
 
 ```sh
 $ tree $HOME/Library/ApplicationSupport/tanzu-cli/
@@ -218,7 +263,12 @@ $ tree $HOME/Library/ApplicationSupport/tanzu-cli/
 
 ### Installed Plugin
 
-The metadata (description, version, buildSHA, documentation URL, etc.) about an installed plugin version is maintained in the PluginDescriptor object.  This information is needed to create a sub-command under the root tanzu command and this object is already present. To uniquely identify an installation we need the binary digest and the relative path of the plugin version under the installation root.
+The metadata (description, version, buildSHA, documentation URL, etc.) about an
+installed plugin version is maintained in the PluginDescriptor object. This
+information is needed to create a sub-command under the root tanzu command and
+this object is already present. To uniquely identify an installation we need
+the binary digest and the relative path of the plugin version under the
+installation root.
 
 ```go
 // PluginDescriptor describes an installed plugin binary.
@@ -235,13 +285,17 @@ type PluginDescriptor struct {
 
 ### Context-mapping
 
-The plugin descriptors are stored in the catalog cache, ${HOME}/.cache/tanzu/catalog.yaml, which is looked up on invocation of every tanzu CLI command.
-Catalog contains following information for the installed plugins.
+The plugin descriptors are stored in the catalog cache,
+${HOME}/.cache/tanzu/catalog.yaml, which is looked up on invocation of every
+tanzu CLI command. Catalog contains following information for the installed
+plugins.
 
 - Index the installations by path to easily look up the PluginDescriptors
 - Map the set of relevant plugin installations to a specific context or to be standalone to display only available plugins for a context (in case of a name conflict between standalone and context-scoped plugins the context-scoped plugin takes precedence)
 
-Note: Similar to the go modules we propose to set only read and executable permissions on the installations to discourage the user from deleting an installation which can break the index.
+Note: Similar to the go modules we propose to set only read and executable
+permissions on the installations to discourage the user from deleting an
+installation which can break the index.
 
 ```go
 // PluginAssociation is a set of plugin names-target and their associated installation paths.
@@ -263,7 +317,14 @@ type Catalog struct {
 
 ### Sync Command
 
-The existing plugin install and plugin upgrade commands operate only on single plugins. We propose to add a new plugin sync command that combines the behavior of install and upgrade, and also handles multiple plugins within a context. For MVP, it only installs the recommended version of required plugins for the context. Also, while upgrading it only upgrades if the installed version is not supported anymore and by default picks the recommended version. In future, which plugins to install/upgrade and which target version to pick shall be configurable.
+The existing plugin install and plugin upgrade commands operate only on single
+plugins. We propose to add a new plugin sync command that combines the behavior
+of install and upgrade, and also handles multiple plugins within a context. For
+MVP, it only installs the recommended version of required plugins for the
+context. Also, while upgrading it only upgrades if the installed version is not
+supported anymore and by default picks the recommended version. In future,
+which plugins to install/upgrade and which target version to pick shall be
+configurable.
 
 ```sh
 $ tanzu plugin sync -h
@@ -361,7 +422,9 @@ Downloading plugin 'kubernetes-release' ...
 `tanzu plugin list` will display all standalone plugins as well as context-scoped plugins from all active contexts.
 There can be one active context per target.
 
-Assume below configuration as part of the config file where there is one active context for both the supported targets.
+Assume below configuration as part of the config file where there is one active
+context for both the supported targets.
+
 `tanzu plugin list` should discover and show plugins from both the contexts.
 
 ```yaml
@@ -384,7 +447,8 @@ $ tanzu plugin list
 
 #### No new install
 
-Creating a new similar context will discover all available plugins from new context and will download them that are not already installed.
+Creating a new similar context will discover all available plugins from new
+context and will download them that are not already installed.
 
 ```sh
 tanzu login --kubeconfig path/to/kubeconfig --context context-name --name vsphere-mc-2
@@ -400,7 +464,9 @@ All required plugins are already installed.
 
 ### Plugin Sync
 
-Explicitly calling the plugin sync command will discover and download new required plugins within the context of a server. It will also upgrade installed plugin versions which are not supported anymore to newer versions.
+Explicitly calling the plugin sync command will discover and download new
+required plugins within the context of a server. It will also upgrade installed
+plugin versions which are not supported anymore to newer versions.
 
 #### No new install or upgrade
 
@@ -417,7 +483,11 @@ All installed plugins are up-to-date.
 
 #### With new install & upgrade
 
-When a new or existing plugin is marked as required it gets downloaded on sync, if not already present. When the installed version is not present in the supported versions list it gets upgraded to the recommended version. If the recommended version has a newer major version than the installed version, the user is prompted for confirmation.
+When a new or existing plugin is marked as required it gets downloaded on sync,
+if not already present. When the installed version is not present in the
+supported versions list it gets upgraded to the recommended version. If the
+recommended version has a newer major version than the installed version, the
+user is prompted for confirmation.
 
 ```sh
 $ tanzu plugin sync
@@ -446,13 +516,28 @@ $ tanzu plugin list
 
 ### Development Plugins
 
-Installing development plugins copies the plugin binary to the installation directory under the appropriate directory for local distribution. For development purpose we will be utilizing 'local' discovery and distribution interface implementation. This will allow developers to install their development plugins as a standalone plugins. If Tanzu CLI is built with default standalone discovery type as 'local', this local standalone discovery will have higher precedence than plugin discovery returned by the management cluster itself. Tanzu CLI with 'local' default standalone discovery should only be used for development purposes and not for the production usecase.
+Installing development plugins copies the plugin binary to the installation
+directory under the appropriate directory for local distribution. For
+development purpose we will be utilizing 'local' discovery and distribution
+interface implementation. This will allow developers to install their
+development plugins as a standalone plugins. If Tanzu CLI is built with default
+standalone discovery type as 'local', this local standalone discovery will have
+higher precedence than plugin discovery returned by the management cluster
+itself. Tanzu CLI with 'local' default standalone discovery should only be used
+for development purposes and not for the production usecase.
 
 ### Installing Plugins from Local Source
 
-Generally we expect most of the users to install the plugins from the default OCI based discovery mechanism. However tanzu CLI handles another way of installing plugins by downloading `tar.gz` files for the plugins and using that to list and install available plugins.
+Generally we expect most of the users to install the plugins from the default
+OCI based discovery mechanism. However tanzu CLI handles another way of
+installing plugins by downloading `tar.gz` files for the plugins and using that
+to list and install available plugins.
 
-To install the plugin with local source, download the plugin `tar.gz` from the release artifacts for your distribution and untar it to a location on your local machine. You can use the directory where the `tar.gz` has been extracted with the `tanzu plugin list --local` and `tanzu plugin install --local` command as mentioned below.
+To install the plugin with local source, download the plugin `tar.gz` from the
+release artifacts for your distribution and untar it to a location on your
+local machine. You can use the directory where the `tar.gz` has been extracted
+with the `tanzu plugin list --local` and `tanzu plugin install --local` command
+as mentioned below.
 
 - List the plugins without `--local`: Lists all available default plugins from the default OCI registry
 

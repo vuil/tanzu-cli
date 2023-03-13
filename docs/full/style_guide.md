@@ -2,10 +2,10 @@
 
 ## Tanzu CLI mission statement
 
-The Tanzu CLI aims to provide a consistent experience for users of the Tanzu portfolio
+The Tanzu CLI aims to provide a consistent experience for users of the Tanzu portfolio.
 
 This document is intended to provide direction for designing Tanzu CLI plugins so
-that they adhere to established patterns
+that they adhere to established patterns.
 
 ------------------------------
 
@@ -193,7 +193,9 @@ $ tanzu apps workload delete <name> --wait-timeout 10m
 
 Available for plugins written in golang.
 
-CLI commands should utilize the plugin component library in [cli/runtime/component](https://github.com/vmware-tanzu/tanzu-framework/tree/main/cli/runtime/component) for interactive features like prompts or table printing.
+VVV point to plugindev components page
+
+CLI commands should utilize the [plugin runtime component library](https://github.com/vmware-tanzu/tanzu-plugin-runtime/tree/main/component) for interactive features like prompts or table printing.
 
 Available input components:
 
@@ -268,7 +270,9 @@ Creating app NAME using context KUBECONFIG-CONTEXT-NAME
 
 ### Progress reporting
 
-For long running processes, don't go for a long period without output to the user. Outputting something like ’Processing…’, or a spinner can go a long way towards reassuring the user that their command went through.
+For long running processes, don't go for a long period without output to the
+user. Outputting something like ’Processing…’, or a spinner can go a long way
+towards reassuring the user that their command went through.
 
 ### Warnings
 
@@ -409,11 +413,13 @@ Interactive prompting: user input is colorized, as is the preceding question mar
 
 * Available for plugins written in golang
 
-  CLI commands should utilize the plugin component library in pkg/cli/component for interactive features like prompts or table printing.
+VVV point to plugindev components page
 
-  Available output components
+CLI commands should utilize the [plugin runtime component library](https://github.com/vmware-tanzu/tanzu-plugin-runtime/tree/main/component) for output functionality like table printing.
 
-  * Table
+Available output components:
+
+* Table
 
 ------------------------------
 
@@ -478,9 +484,12 @@ $ tanzu login -h
 
 ## Designing error and warning text
 
-Use output warnings sparingly. When used often they can create a lot of noise and users may learn to ignore them
+Use output warnings sparingly. When used often they can create a lot of noise
+and users may learn to ignore them.
 
-Try to write clear and concise errors, which tell the user what action (if any) must be taken. Ideally users won’t have to ask for help or check documentation to recover
+Try to write clear and concise errors, which tell the user what action (if any)
+must be taken. Ideally users won’t have to ask for help or check documentation
+to recover.
 
 Make errors informative. A great error message should contain the following
 
@@ -521,20 +530,15 @@ Make it easy to submit bug reports and feedback
 
 ### Plugins
 
-For information about developing plugins, see the [Plugin Guide](https://github.com/vmware-tanzu/tanzu-framework/blob/main/cli/core/docs/cli/plugin_implementation_guide.md)
+For information about developing plugins, see the [Plugin Guide](../plugindev/main.md)
 
 ### Contributions to the Style Guide
 
-A styleguide is never done, and should change to meet the changing needs
-To propose changes please create an issue, and add it to the CLI SIG agenda to discuss
+A styleguide is never done, and should change to meet the changing needs To
+propose changes please create an issue, and add it to the CLI SIG agenda to
+discuss.
 
 ------------------------------
-
-### Precedent
-
-Olympus Design System
-PKS styleguide
-cf-cli styleguide
 
 ### Accessibility Guidelines
 

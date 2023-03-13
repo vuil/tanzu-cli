@@ -54,5 +54,7 @@ make test
 
 ## Deprecation of existing functionality
 
-Any changes aimed to remove functionality in the CLI (e.g. commands, command flags) have to follow the deprecation policy,
-For more details on the deprecation policy and process please refer to the [Deprecation document](../full/deprecation.md).
+Any changes aimed to remove functionality in the CLI (e.g. commands, command
+flags) have to follow the deprecation policy, For more details on the
+deprecation policy and process please refer to the [Deprecation
+document](../full/deprecation.md).

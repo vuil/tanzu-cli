@@ -4,35 +4,38 @@ VVV: mostly should go to TZR (or should we keep here?)
 
 ## Developing
 
-The Tanzu CLI was built to be extensible across teams and be cohesive across SKUs. To this end, the Tanzu CLI provides
-tools to make creating and compiling new plugins straightforward.
+The Tanzu CLI was built to be extensible across teams and be cohesive across
+SKUs. To this end, the Tanzu CLI provides tools to make creating and compiling
+new plugins straightforward.
 
-VVV link
-The [Tanzu CLI Styleguide](../full/style_guide.md) describes the user interaction patterns to be followed, and general guidance, for CLI contribution.
+The [Tanzu CLI Styleguide](../full/style_guide.md) describes the user
+interaction best practices to be followed. It is highly recommended that anyone
+interested in developing a Tanzu CLI plugin be familiarized with the
+recommendations.
+
+To help faciliate... checklist
+VVV add link
 
 ------------------------------
 
 ### Plugins
 
-The Tanzu CLI is a modular design that consists of plugins. To bootstrap a new plugin, you can use the `builder` admin
-plugin as described further below.
+VVV update!!
 
-This architecture enables teams to build, own, and release their own piece of functionality as well as enable external
-partners to integrate with the system.
+The Tanzu CLI is a modular design that consists of plugins. To bootstrap a new
+plugin, you can use the `builder` admin plugin as described further below.
+
+This architecture enables teams to build, own, and release their own piece of
+functionality as well as enable external partners to integrate with the system.
 
 Current implementations:
 
-VVV: update
-
-* [Tanzu Framework plugins](https://github.com/vmware-tanzu/tanzu-framework/tree/main/cmd/cli/plugin)
-* [Admin plugins](https://github.com/vmware-tanzu/tanzu-framework/tree/main/cmd/cli/plugin-admin)
-* Advanced plugins
+Some CLI functionality essential for plugin development are available as Tanzu CLI plugins. These are termed "admin plugins" for the rest of the document.
 
 #### Installing Admin Plugins
 
 VVV: update
-
-With the [context-aware plugin discovery](../design/context-aware-plugin-discovery-design.md) enabled (now the default and recommended approach), Tanzu CLI admin plugins should be installed from local source as follows:
+OUTDATED
 
 1. Download the latest admin plugin tarball or zip file from [release](https://github.com/vmware-tanzu/tanzu-framework/releases/latest) page (`tanzu-framework-plugins-admin-linux-amd64.tar.gz` or `tanzu-framework-plugins-admin-darwin-amd64.tar.gz` or `tanzu-framework-plugins-admin-windows-amd64.zip`) and extract it (using `linux` as the example OS for next steps)
 1. Run `tanzu plugin list --local /path/to/extracted/admin-plugins` to list the available admin plugins
@@ -104,7 +107,7 @@ $ tanzu plugin list
   management-cluster  Kubernetes management-cluster operations    Standalone  default               v0.11.0-dev  not installed
 ```
 
-To add a plugin discovery source the command `tanzu plugin source add` should be used.  For example, assuming the admin plugin's manifests are released as a carvel-package at OCI image `projects.registry.vmware.com/tkg/tanzu-plugins/admin-plugins:v0.11.0-dev` then we use the following command to add that discovery source to the tanzu configuration.
+To add a plugin discovery source the command `tanzu plugin source add` should be used. For example, assuming the admin plugin's manifests are released as a carvel-package at OCI image `projects.registry.vmware.com/tkg/tanzu-plugins/admin-plugins:v0.11.0-dev` then we use the following command to add that discovery source to the tanzu configuration.
 
 ```sh
  tanzu plugin source add --name admin --type oci --uri projects.registry.vmware.com/tkg/tanzu-plugins/admin-plugins:v0.11.0-dev
@@ -169,7 +172,7 @@ git add -A
 git commit -m "Initialize plugin repository"
 ```
 
-1. Add your plugin name to the `PLUGINS` variable in the `Makefile`.  This is the name you used with the `tanzu builder cli add-plugin <plugin-name>` command.
+1. Add your plugin name to the `PLUGINS` variable in the `Makefile`. This is the name you used with the `tanzu builder cli add-plugin <plugin-name>` command.
 
 ```shell
 # Add list of plugins separated by space
@@ -189,7 +192,7 @@ Using `make build-install-local` installs the plugins for the user, but it inter
 tanzu plugin install <plugin-name> --local ./artifacts/published/${HOSTOS}-${HOSTARCH}
 ```
 
-Your plugin is now available for you through the Tanzu CLI.  You can confirm this by running `tanzu plugin list`
+Your plugin is now available for you through the Tanzu CLI. You can confirm this by running `tanzu plugin list`
 which will now show your plugin.
 
 The next steps are to write the plugin code to implement what the plugin is meant to do.
@@ -227,31 +230,33 @@ Initialization of the distributions can be prevented by setting the env var `TAN
 
 ### Release
 
-When a git tag is created on the repositories, it will version all the plugins in that repository to the current tag.
-The plugin binaries built for that tag will be namespaced under the tag semver.
+When a git tag is created on the repositories, it will version all the plugins
+in that repository to the current tag. The plugin binaries built for that tag
+will be namespaced under the tag semver.
 
 All merges to main will be under the `dev` namespace in the artifacts repository.
 
-The release directory structure for the available plugins under the repository can be generated by running the following command:
+The release directory structure for the available plugins under the repository
+can be generated by running the following command:
 
 ```sh
 make release
 ```
 
-This will generate the published artifact directories under `./artifacts/published/` (default location) with an OS-ARCH specific
-directory structure generated.
+This will generate the published artifact directories under `./artifacts/published/`
+(default location) with an OS-ARCH specific directory structure generated.
 
 ------------------------------
 
 ## Repositories
 
-Framework exists in
+VVV Framework exists in
 [https://github.com/vmware-tanzu/tanzu-framework](https://github.com/vmware-tanzu/tanzu-framework)
 and any plugins that are considered open source should exist in that repository as well.
 
-Other repositories should follow the model seen in
-(TODO:add example url) and vendor the repository.
-Ideally these plugins should exist in the same area as the API definitions.
+Other repositories should follow the model seen in (VVV:add example url) and
+vendor the repository. Ideally these plugins should exist in the same area as
+the API definitions.
 
 ------------------------------
 
@@ -259,27 +264,33 @@ Ideally these plugins should exist in the same area as the API definitions.
 
 ### Components
 
-CLI commands should utilize the plugin component library in `pkg/cli/component` for interactive features like prompts
-or table printing.
+CLI commands should utilize the plugin component library in `pkg/cli/component`
+for interactive features like prompts or table printing.
 
 ### Asynchronous Requests
 
 Commands should be written in such a way as to return as quickly as possible.
-When a request is not expected to return immediately, as is often the case with declarative commands, the command should
-return immediately with an exit code indicating the server's response.
+When a request is not expected to return immediately, as is often the case with
+declarative commands, the command should return immediately with an exit code
+indicating the server's response.
 
-The completion notice should include an example of the `get` command the user would need in order to poll the resource to check the state/status of the operation.
+The completion notice should include an example of the `get` command the user
+would need in order to poll the resource to check the state/status of the
+operation.
 
 ### Shell Completion
 
-Shell completion (or "command-completion" or "tab completion") is the ability for the program to automatically fill-in
-partially typed commands, arguments, flags and flag values.  The Tanzu CLI provides an integrated solution for shell completion
-which will automatically take care of completing commands and flags for your plugin.  To make the completions richer, a plugin
-can add logic to also provide shell completion for its arguments and flag values; these are referred to as "custom completions".
+Shell completion (or "command-completion" or "tab completion") is the ability
+for the program to automatically fill-in partially typed commands, arguments,
+flags and flag values. The Tanzu CLI provides an integrated solution for shell
+completion which will automatically take care of completing commands and flags
+for your plugin. To make the completions richer, a plugin can add logic to
+also provide shell completion for its arguments and flag values; these are
+referred to as "custom completions".
 
 Please refer to the Cobra project's documentation on
-[Customizing completions](https://github.com/spf13/cobra/blob/main/shell_completions.md#customizing-completions) to learn how
-to make your plugin more user-friendly using shell completion.
+[Customizing completions](https://github.com/spf13/cobra/blob/main/shell_completions.md#customizing-completions)
+to learn how to make your plugin more user-friendly using shell completion.
 
 ### Templates
 
@@ -293,5 +304,9 @@ TBD
 
 ## Deprecation of existing plugin functionality
 
-It is highly recommended that plugin authors follow the same process used by the Core CLI to announce and implement deprecation of specific plugin functionality .
-For more details on the deprecation policy and process please refer to the [Deprecation document](../full/deprecation.md).
+It is highly recommended that plugin authors follow the same process used by
+the Core CLI to announce and implement deprecation of specific plugin
+functionality .
+
+For more details on the deprecation policy and process please refer to the
+[Deprecation document](../full/deprecation.md).

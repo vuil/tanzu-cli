@@ -6,8 +6,9 @@ Homebrew and apt.
 
 ## From the Binary Releases in GitHub project
 
-Every [release](https://github.com/vmware-tanzu/tanzu-cli/releases) of the Tanzu CLI provides separate binary
-releases for a variety of OS's and machine architectures. To install using one of these:
+Every [release](https://github.com/vmware-tanzu/tanzu-cli/releases) of the
+Tanzu CLI provides separate binary releases for a variety of OS's and machine
+architectures. To install using one of these:
 
 1. Download the [desired version](https://github.com/vmware-tanzu/tanzu-cli/releases). We recommend picking the latest release of the major version of the CLI you want to use.
 2. Unpack it (e.g. `tar -zxvf tanzu-cli-darwin-amd64.tar.gz`)
@@ -17,7 +18,8 @@ releases for a variety of OS's and machine architectures. To install using one o
 
 ## Via Package Managers
 
-A recent, supported version of the Tanzu CLI is also available for install through the following package managers:
+A recent, supported version of the Tanzu CLI is also available for install
+through the following package managers:
 
 ### Homebrew (MacOS)
 

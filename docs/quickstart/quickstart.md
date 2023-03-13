@@ -33,7 +33,8 @@ configuring a connection to a Tanzu Mission Control URL.
 
 ## Using Tanzu CLI
 
-With the CLI installed, user can choose to install one or more sets of plugins for the product or service the user wants to interact with using the CLI
+With the CLI installed, user can choose to install one or more sets of plugins
+for the product or service the user wants to interact with using the CLI
 
 ### List plugin groups found in the local test central repo
 
@@ -59,7 +60,9 @@ $ tanzu plugin install all --group vmware-tkg/v2.1.0
 ✔  successfully installed all plugins from group 'vmware-tkg/v2.1.0'
 ```
 
-The above command fetches, validates and installs a set of plugins defined by the vmware-tkg/v2.1.0 group, which in turn is required for using the TKG 2.1.0 product.
+The above command fetches, validates and installs a set of plugins defined by
+the vmware-tkg/v2.1.0 group, which in turn is required for using the TKG 2.1.0
+product.
 
 ### Plugins are now installed and available for use
 
@@ -108,8 +111,9 @@ tanzu plugin install <plugin> --version <version> [--target <target>]
 tanzu plugin upgrade <plugin> [--target <target>]
 ```
 
-This command will update the specified plugin to the version specified by the context, if
-any, or else to the recommendedVersion associated with this plugin entry found in the plugin repository.
+This command will update the specified plugin to the version specified by the
+context, if any, or else to the recommendedVersion associated with this plugin
+entry found in the plugin repository.
 
 ### Creating and connecting to a new context
 
