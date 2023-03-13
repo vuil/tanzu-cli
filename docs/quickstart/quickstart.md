@@ -36,6 +36,25 @@ configuring a connection to a Tanzu Mission Control URL.
 With the CLI installed, user can choose to install one or more sets of plugins
 for the product or service the user wants to interact with using the CLI
 
+### Install autocompletion scripts for your shell
+
+Command completion support is built into the CLI, but it requires an initial
+setup for the command shell in use. The shells with autocompletion support art
+bash, zsh, fish and powershell.
+
+For instance, to enable autocompletion for Tanzu CLI for all new sessions of
+zsh
+
+```console
+  ## Load for all new sessions:
+  echo "autoload -U compinit; compinit" >> ~/.zshrc
+  tanzu completion zsh > "${fpath[1]}/_tanzu"
+```
+
+To find out more about how to set up autocompletion for your specific shell, run:
+
+`tanzu complete --help`
+
 ### List plugin groups found in the local test central repo
 
 ```console
