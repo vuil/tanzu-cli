@@ -1,209 +1,177 @@
 # Tanzu CLI Plugin Implementation Guide
 
-VVV: mostly should go to TZR (or should we keep here?)
-
-## Developing
+## Introduction
 
 The Tanzu CLI was built to be extensible across teams and be cohesive across
 SKUs. To this end, the Tanzu CLI provides tools to make creating and compiling
 new plugins straightforward.
 
-The [Tanzu CLI Styleguide](../full/style_guide.md) describes the user
+Before embarking on developing a plugin, the develop should be familiar with the following materials:
+
+1. The key concepts related to the the Tanzu CLI
+2. The CLI plugin architecture
+3. The [Tanzu CLI Styleguide](../full/style_guide.md), which describes the user
 interaction best practices to be followed. It is highly recommended that anyone
 interested in developing a Tanzu CLI plugin be familiarized with the
 recommendations.
+4. The [build stage](../full/build_stage_styleguide_checklist.md) and [design stage](../full/design_stage_styleguide_checklist.md) style guide checklist are useful resources to refer to so as to maximize UX consistency in the plugin being deveoped.
 
-To help faciliate... checklist
-VVV add link
+This document will primarily focus on setting up a development environment to build and publish plugins.
+
+## Environment
+
+The Tanzu Plugin Runtime (also referred to as "runtime library" or simply "runtime") is a library the plugin implementation should integrate with to implement the [plugin contract](contract.md).
+
+The Tanzu Core CLI and runtime library are written in the Go programming language. While the plugin architecture tecnically does not prevent the development of plugins using other programming languages, at the moment the only supported means of plugin development is that which integrates with a released version of the runtime library.
+
+The minimum supported Go version is 1.18.
+You will need Docker to be installed on your development system.
+Note for Mac developers on Apple Silicon machines: Tanzu CLI does not yet officially support arm64-based binaries.
+To develop on these machines ensure that amd64 versions of the Go toolchain is installed.
 
 ------------------------------
 
-### Plugins
+### Starting a plugin project
 
-VVV update!!
+Some CLI functionality essential for plugin development are available as Tanzu
+CLI plugins. These are termed "admin plugins" for the rest of the document.
 
-The Tanzu CLI is a modular design that consists of plugins. To bootstrap a new
-plugin, you can use the `builder` admin plugin as described further below.
+The easiest way to bootstrap a new plugin project is to make use of the
+`builder` admin plugin. This plugin provides commands to construct scaffolding
+for plugins and commands, and remove much of the need to write boilerplate
+code. Use one of the following methods to install the builder plugin.
 
-This architecture enables teams to build, own, and release their own piece of
-functionality as well as enable external partners to integrate with the system.
+#### Installing official release of admin plugins
 
-Current implementations:
+```console
+VVV update once a working repo is available
+tanzu plugin install --group tzcli/admin:latest
+OR
+VVV update once a working repo is available
+tanzu plugin install builder
+```console
 
-Some CLI functionality essential for plugin development are available as Tanzu CLI plugins. These are termed "admin plugins" for the rest of the document.
+#### Installing local build of admin plugins
 
-#### Installing Admin Plugins
+```console
+#check out the [tanzu-cli](https://github.com/vmware-tanzu/tanzu-cli) repository.
 
-VVV: update
-OUTDATED
+#ensure all the tooling dependencies
+make tools
 
-1. Download the latest admin plugin tarball or zip file from [release](https://github.com/vmware-tanzu/tanzu-framework/releases/latest) page (`tanzu-framework-plugins-admin-linux-amd64.tar.gz` or `tanzu-framework-plugins-admin-darwin-amd64.tar.gz` or `tanzu-framework-plugins-admin-windows-amd64.zip`) and extract it (using `linux` as the example OS for next steps)
-1. Run `tanzu plugin list --local /path/to/extracted/admin-plugins` to list the available admin plugins
-1. Run `tanzu plugin install all --local /path/to/extracted/admin-plugins` to install all admin plugins. The user can use `_plugin-name_` instead of `all` to install a specific plugin.
-1. Run `tanzu plugin list` to verify the installed plugins
+make plugin-build-and-publish-packages
+OVERRIDE_INVENTORY_IMAGE=1 make inventory-init && make inventory-plugin-insert
+tanzu plugin install builder
 
-NOTE: We are working on enhancing this user experience by publishing admin artifacts as OCI image discovery source as well. More details is in [this issue](https://github.com/vmware-tanzu/tanzu-framework/issues/1376).
+tanzu builder --help
+```
 
-### Context
+### Bootstrapping a plugin project
 
-Context is an isolated scope of relevant client-side configurations for a combination of user identity and server identity. There can be multiple contexts for the same combination of `(user, server)`. Previously, this was referred to as `Server` in the Tanzu CLI. Going forward we shall refer to them as `Context` to be explicit.
+#### 1) create a new plugin repository
 
-If a plugin wants to access the context it should use the [context-related APIs](https://github.com/vmware-tanzu/tanzu-plugin-runtime/blob/main/config/contexts.go) in the tanzu plugin runtime library to ensure forward compatibility. For example, to get the current active context use the below snippet:
+```shell
+`tanzu builder init <repo-name>`
+```
+
+either specify the --repo-type or be prompted to choose between GitLab or
+GitHub type repository. The choice will determine the type of skeleton CI
+configuration file generated.
+
+#### 2) add main package
+
+```shell
+cd <repo-name> && tanzu builder cli add-plugin <plugin-name>
+```
+
+will add a `main` package for the new plugin. You should now adjust the
+newly created `main` package to implement the functionality of your new plugin.
+
+#### 3) update plugin metadata
+
+You will notice in the generated `main.go` file, that CLI plugins have to instantiate a
+[Plugin Descriptor](https://github.com/vmware-tanzu/tanzu-plugin-runtime/blob/main/plugin/types.go#L60)
 
 ```go
-import (
-  config "github.com/vmware-tanzu/tanzu-plugin-runtime/config"
-  cfgtypes "github.com/vmware-tanzu/tanzu-plugin-runtime/config/types"
-)
+var descriptor = plugin.PluginDescriptor{
+    Name:            "helloworld",
+    Target:          types.TargetGlobal,
+    Description:     "Hello world plugin",
+    Group:           plugin.AdminCmdGroup,
+    Version:         "v0.0.1",
+    BuildSHA:        buildinfo.SHA,
+    PostInstallHook: postInstallHook,
+}
 
-ctx, err := config.GetCurrentContext(cfgtypes.TargetK8s)
+func main() {
+    p, err := plugin.NewPlugin(&descriptor)
+    //...
+}
 ```
 
-**Note:** The Tanzu CLI will also ensures interoperability between `Server` and `Context` for as long as the Server concept is supported.
-VVV more details, link to doc on config handling
+#### 4) commit the changes to respository
 
-### Plugin Discovery Source
-
-Discovery is the interface to fetch the list of available plugins, their supported versions and how to download them either standalone or scoped to a context(server). E.g., the CLIPlugin resource in a management cluster, OCI based plugin discovery for standalone plugins, a similar REST API etc. provides the list of available plugins and details about the supported versions. Having a separate interface for discovery helps to decouple discovery (which is usually tied to a server or user identity) from distribution (which can be shared).
-
-Plugins can be of two different types:
-
-  1. Standalone plugins: independent of the CLI context and are discovered using standalone discovery source
-
-      This type of plugins are not associated with the `tanzu login` workflow and are available to the Tanzu CLI independent of the CLI context.
-
-  2. Context(server) scoped plugins: scoped to one or more contexts and are discovered using kubernetes or other server associated discovery source
-
-      This type of plugins are associated with the `tanzu login` workflow and are discovered from the management-cluster or global server endpoint.
-      In terms of management-clusters, this type of plugins are mostly associated with the installed packages.
-
-      Example:
-
-      As a developer of a `velero` package, I would like to create a Tanzu CLI plugin that can be used to configure and manage installed `velero` package configuration.
-      This usecase can be handled with context scoped plugins by installing `CLIPlugin` CR related to `velero` plugin on the management-cluster as part of `velero` package installation.
-
-      ```sh
-      # Login to a management-cluster
-      $ tanzu login
-
-      # Installs velero package to the management-cluster along with `velero` CLIPlugin resource
-      $ tanzu package install velero-pkg --package-name velero.tanzu.vmware.com
-
-      # Plugin list should show a new `velero` plugin available
-      $ tanzu plugin list
-        NAME     DESCRIPTION                    SCOPE       DISCOVERY          VERSION    STATUS
-        velero   Backup and restore operations  Context     cluster-default    v0.1.0     not installed
-
-      # Install velero plugin
-      $ tanzu plugin install velero
-      ```
-
-The default standalone plugins discovery source automatically gets added to the tanzu config files and plugins from this discovery source are automatically discovered.
-
-```sh
-$ tanzu plugin list
-  NAME                DESCRIPTION                                 SCOPE       DISCOVERY             VERSION      STATUS
-  login               Login to the platform                       Standalone  default               v0.11.0-dev  not installed
-  management-cluster  Kubernetes management-cluster operations    Standalone  default               v0.11.0-dev  not installed
-```
-
-To add a plugin discovery source the command `tanzu plugin source add` should be used. For example, assuming the admin plugin's manifests are released as a carvel-package at OCI image `projects.registry.vmware.com/tkg/tanzu-plugins/admin-plugins:v0.11.0-dev` then we use the following command to add that discovery source to the tanzu configuration.
-
-```sh
- tanzu plugin source add --name admin --type oci --uri projects.registry.vmware.com/tkg/tanzu-plugins/admin-plugins:v0.11.0-dev
-```
-
-We can check the newly added discovery source with
-
-```sh
-$ tanzu plugin source list
-  NAME     TYPE  SCOPE
-  default  oci   Standalone
-  admin    oci   Standalone
-```
-
-This will allow the tanzu CLI to discover new available plugins in the newly added discovery source.
-
-```sh
-$ tanzu plugin list
-  NAME                DESCRIPTION                                                        SCOPE       DISCOVERY             VERSION      STATUS
-  login               Login to the platform                                              Standalone  default               v0.11.0-dev  not installed
-  management-cluster  Kubernetes management-cluster operations                           Standalone  default               v0.11.0-dev  not installed
-  builder             Builder plugin for CLI                                             Standalone  admin                 v0.11.0-dev  not installed
-  test                Test plugin for CLI                                                Standalone  admin                 v0.11.0-dev  not installed
-```
-
-To install the builder plugin use `tanzu plugin install builder`
-
-### Developing a New CLI Plugin
-
-The sections below describe how to develop a new Tanzu CLI plugin.
-
-#### Bootstrapping a Plugin
-
-The `builder` admin plugin can be used to develop a new plugin for the Tanzu CLI.
-
-The first step is to use `tanzu builder init <repo-name>` to create a new plugin repository.
-Then `cd <repo-name> && tanzu builder cli add-plugin <plugin-name>` which will add a `main` package for the new plugin.
-You should now adjust the newly created `main` package to implement the functionality of your new plugin.
-
-VVV UPDATEUPDATE details
-You will notice in the generated `main.go` file, that CLI plugins have to instantiate a
-*Plugin descriptor* VVV badlink for creating a new plugin, the code then allows you to add [sub-commands](https://github.com/vmware-tanzu/tanzu-framework/tree/main/cli/runtime/plugin) to your plugin.
-
-VVV UPDATEUPDATE details
-Plugins are pulled from registered repositories. On a merge to main, all the plugins in your new repo are built and pushed
-to a public repository (see the `.github` directory or `.gitlab-ci.yaml` file). It is useful to leverage a local repo while developing.
-
-#### Building a Plugin
-
-The Tanzu CLI itself is responsible for building plugins. You can build and install your new plugin for the current host OS with the provided make targets as follows:
-
-1. Initialize go module.
+Initialize go module.
 
 ```shell
 make init
 ```
 
-1. Create an initial commit.
+Create an initial commit.
 
 ```shell
 git add -A
 git commit -m "Initialize plugin repository"
 ```
 
-1. Add your plugin name to the `PLUGINS` variable in the `Makefile`. This is the name you used with the `tanzu builder cli add-plugin <plugin-name>` command.
+### Building a Plugin
+
+At this point the source repository does not yet have any specific commands
+implemented, but yet a fully functional plugin should (with some common
+commands included) should already be buildable.
+
+The `builder` plugin also provides functionality to build, install or publish
+the plugins. These capabilities are most easily accessed through Makefile
+targets already set up for the same purposes.
+
+#### Add your plugin name(s) to the `Makefile`
+
+Add your plugin name to the `PLUGINS` variable in the `Makefile`. This is the name you used with the `tanzu builder cli add-plugin <plugin-name>` command.
 
 ```shell
 # Add list of plugins separated by space
 PLUGINS ?= "<plugin-name>"
 ```
 
-1. Build the plugin.
+#### Build the plugin binary
+
+VVV
 
 ```sh
-make build-install-local
+make plugin-build-local
 ```
 
-This will build plugin artifacts under `./artifacts` and generate a plugin publishing directory `${HOSTOS}-${HOSTARCH}` under `./artifacts/published`.
-Using `make build-install-local` installs the plugins for the user, but it internally invokes the following command to install the plugins:
+This will build plugin artifacts under `./artifacts` with plugins organized under: `artifacts/plugins/<OS>/<ARCH>/<TARGET>`
 
 ```sh
+VVV update to new command
 tanzu plugin install <plugin-name> --local ./artifacts/published/${HOSTOS}-${HOSTARCH}
 ```
 
-Your plugin is now available for you through the Tanzu CLI. You can confirm this by running `tanzu plugin list`
-which will now show your plugin.
-
-The next steps are to write the plugin code to implement what the plugin is meant to do.
+Your plugin is now available for you through the Tanzu CLI. You can confirm
+this by running `tanzu plugin list` which will now show your plugin.
 
 Plugins are installed into `$XDG_DATA_HOME`, (read more about the XDG Base Directory Specification [here.](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
 
-The CLI can be updated to the latest version of all plugins using:
+The next steps are to write the plugin code to implement what the plugin is meant to do.
 
-```sh
-tanzu update
-```
+#### Adding plugin commands
+
+The scaffolded code creates a Plugin object to which additional sub [cobra.Command's](https://pkg.go.dev/github.com/spf13/cobra#Command) can be added to.
+
+#### Publishing plugins
+
+VVV To add
 
 #### Tests
 
@@ -214,58 +182,31 @@ the admin `test` plugin of the Tanzu CLI.
 
 #### Docs
 
-Every plugin requires a README document that explains its basic usage.
+Since every plugin is required a README.md document that explains its basic usage, a basic one is generated in the top-level directory of the repository as well.
 
-### Distributions
+Edit the file as appropriate.
 
-A distribution is simply a set of plugins that may exist across multiple repositories. The CLI currently contains a
-default distribution which is the default set of plugins that should be installed on initialization.
+### Publishing a plugin
 
-Distributions allow the CLI to be presented in accordance with different product offerings. When creating a new local
-catalog, you can specify the distro you wish the catalog to enforce for the CLI.
+To publish one or more built plugins to a target repository, one would need to
 
-On boot, the CLI will check that the distro is present within the given set of plugins or it will install them.
-
-Initialization of the distributions can be prevented by setting the env var `TANZU_CLI_NO_INIT=true`
-
-### Release
-
-When a git tag is created on the repositories, it will version all the plugins
-in that repository to the current tag. The plugin binaries built for that tag
-will be namespaced under the tag semver.
-
-All merges to main will be under the `dev` namespace in the artifacts repository.
-
-The release directory structure for the available plugins under the repository
-can be generated by running the following command:
+1. Specify the repository with the env var PLUGIN_PUBLISH_REPOSITORY (the default location is localhost:5001/test/v1/tanzu-cli/plugins), which is where the local test repository is deployed
+1. Have push access to said repository location
 
 ```sh
-make release
+make plugin-publish-packages
 ```
 
-This will generate the published artifact directories under `./artifacts/published/`
-(default location) with an OS-ARCH specific directory structure generated.
-
 ------------------------------
 
-## Repositories
-
-VVV Framework exists in
-[https://github.com/vmware-tanzu/tanzu-framework](https://github.com/vmware-tanzu/tanzu-framework)
-and any plugins that are considered open source should exist in that repository as well.
-
-Other repositories should follow the model seen in (VVV:add example url) and
-vendor the repository. Ideally these plugins should exist in the same area as
-the API definitions.
-
-------------------------------
-
-## CLI Behavior
+## CLI command best practices
 
 ### Components
 
-CLI commands should utilize the plugin component library in `pkg/cli/component`
-for interactive features like prompts or table printing.
+CLI commands should, to the extent possible, utilize the
+[Plugin UX component library](https://github.com/vmware-tanzu/tanzu-plugin-runtime/tree/main/component)
+for interactive features like prompts or table printing to achieve consistency
+across different plugin usage.
 
 ### Asynchronous Requests
 
@@ -292,11 +233,9 @@ Please refer to the Cobra project's documentation on
 [Customizing completions](https://github.com/spf13/cobra/blob/main/shell_completions.md#customizing-completions)
 to learn how to make your plugin more user-friendly using shell completion.
 
-### Templates
-
-TBD
-
 ### Config file
+
+VVV
 
 `~/.config/tanzu/config.yaml`
 
