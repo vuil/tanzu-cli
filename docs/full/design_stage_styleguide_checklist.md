@@ -16,11 +16,11 @@ VVV
 
 ## UI Text / Taxonomy
 
-- [ ] **Do any commands require adding new nouns (resources) to the [existing taxonomy](cli-wordlist.yml)?** (importance: high)
-  - Check in with the CLI SIG to add new top-level resources
+- [ ] **Do any commands require adding new nouns (resources) to the [existing taxonomy](taxonomy.md)?** (importance: high)
+  - Consider raising awareness sooner by [filing an issue](https://github.com/vmware-tanzu/tanzu-plugin-runtime/issues/new?assignees=&labels=shared-taxonomy%2C+kind%2Ffeature&template=feature_request.md) proposing an update to the taxonomy
 - [ ] **Are the nouns in each command used in a manner consistent with usage in existing commands?** (importance: high)
-- [ ] **Do any commands require adding new verbs (actions) to the [existing taxonomy](cli-wordlist.yml)?**    (importance: medium)
-  - Not a problem, but if there is a verb in the [existing taxonomy](cli-wordlist.yml) that could be used, please use it
+- [ ] **Do any commands require adding new verbs (actions) to the [existing taxonomy](taxonomy.md)?**    (importance: medium)
+  - Not a problem, but if there is a verb in the [existing taxonomy](taxonomy.md) that could be used, please use it
 - [ ] **Are the verbs in each command used in a manner consistent with usage in existing commands?** (importance: medium)
-- [ ] **Do any commands require adding new flags to the [existing taxonomy](cli-wordlist.yml)?** (importance: low)
-  - Not a problem, but if there is a flag in the [existing taxonomy](cli-wordlist.yml) that could be used, please use it
+- [ ] **Do any commands require adding new flags to the [existing taxonomy](taxonomy.md)?** (importance: low)
+  - Not a problem, but if there is a flag in the [existing taxonomy](taxonomy.md) that could be used, please use it

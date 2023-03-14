@@ -68,13 +68,16 @@ tanzu management-cluster kubeconfig get --admin
 
 ### Global Flags
 
-Global flags are maintained by the Tanzu CLI SIG and adding to the current global set should be managed through the SIG
+The global flags are maintained in this repository need to apply meaningfully to
+most, if not all, plugin commands, hence care has to be taken when any changes
+to them are made. Any request to add or remove a flag has to be preceded with
+the filing of a [feature request](https://github.com/vmware-tanzu/tanzu-cli/issues/new?assignees=&labels=needs-triage%2C+kind%2Ffeature&template=feature_request.md)
+explaining the rationale. The change, should it be implemented, will be
+accompanied by a clear [deprecation notice](deprecation.md).
 
 ### Nouns
 
-Any nouns being added must exist in the [Shared Taxonomy document](cli-wordlist.yml)
-
-* Introducing nouns to support the creation of new commands and/or subcommands should be reviewed by the Tanzu CLI SIG
+It is highly recommended that any new nouns introduced by plugins be added to the [Shared Taxonomy](taxonomy.md)
 
 Compound words should be `-` delimited
 
@@ -92,13 +95,11 @@ tanzu app get, not tanzu app-get
 
 Use the standard CRUD verbs whenever possible
 
-* Tanzu CLI uses create, delete, get, list, update
+* Tanzu CLI uses `create, delete, get, list, update`
 
-  If at all possible, use pre-existing verbs from the [Shared Taxonomy document](cli-wordlist.yml)
+If at all possible, use pre-existing verbs from the [Shared Taxonomy](taxonomy.md).
 
-* New verbs must be reviewed by the Tanzu CLI SIG
-
-  Opposing commands should take the form of antonyms
+* Opposing commands should take the form of antonyms
 
 Example
 
@@ -109,7 +110,8 @@ Example
 ### Sub-Noun
 
 Plugin specific sub-nouns do not need to be reviewed by the governance group.
-Please review the [Shared Taxonomy document](cli-wordlist.yml) when using sub-nouns, and make sure you're using the noun consistently if it's already being used.
+Please review the [Shared Taxonomy](taxonomy.md) when using sub-nouns, and make
+sure you're using the noun consistently if it's already being used.
 
 #### Nesting
 
@@ -131,7 +133,7 @@ tanzu cluster create CLUSTER-NAME [flags]
 
 ### Flags
 
-* Use standard names for flags if there is one (flags used in the cli are documented [here](cli-wordlist.yml))
+* Use standard names for flags if there is an appropriate one in the [Shared Taxonomy](taxonomy.md))
 * When using flags to specify different aspects of the same object, including the object name in the flag can be helpful. `tanzu foo list --bar --bar-uid "..."` and `tanzu foo list --bar-name --bar-uid "..."` are both in use, choose whichever pattern makes more sense for your plugin.
 
 * Where possible, set reasonable defaults for flag-able options that align with expected workflows
@@ -182,7 +184,6 @@ $ tanzu apps workload delete <name> --wait-timeout 10m
 * If you are prompting for a secret, do not echo it in the terminal when the user types
   * Commands should accept secrets via environment variables
 * Commands should not prompt when TTY is not present
-  * The component library can provide this check, pending resolution of issue #330
 
 ### Command principles
 
@@ -193,14 +194,13 @@ $ tanzu apps workload delete <name> --wait-timeout 10m
 
 Available for plugins written in golang.
 
-VVV point to plugindev components page
-
 CLI commands should utilize the [plugin runtime component library](https://github.com/vmware-tanzu/tanzu-plugin-runtime/tree/main/component) for interactive features like prompts or table printing.
 
 Available input components:
 
-* Prompt
-* Select
+* Select : for seek a choice among a list of alternatives
+* Question : for seeking an interactive response to a simple question
+* Prompt : for seeking an interactive response to a question with a good amount of configurability
 
 ------------------------------
 
@@ -274,6 +274,8 @@ For long running processes, don't go for a long period without output to the
 user. Outputting something like ’Processing…’, or a spinner can go a long way
 towards reassuring the user that their command went through.
 
+The OutputWriterSpinner in [plugin runtime component library](https://github.com/vmware-tanzu/tanzu-plugin-runtime/tree/main/component) is a useful component to use to indicate in the output that some operations are long-running.
+
 ### Warnings
 
 In the confirmation feedback, include a notice for experimental or beta commands.
@@ -333,6 +335,8 @@ calculator-app   running  53%   18%   mortgage-calc-dev
 calculator-bpp   running  93%   21%   mortgage-calc-test
 calculator-cpp   running  23%   77%   mortgage-calc
 ```
+
+The OutputWriter component in [plugin runtime component library](https://github.com/vmware-tanzu/tanzu-plugin-runtime/tree/main/component) is a useful component for producing consistent tabular output.
 
 ### Time format
 
@@ -405,7 +409,6 @@ Interactive prompting: user input is colorized, as is the preceding question mar
 ### Symbols / Emojis
 
 * Currently no standards or guidance
-* Recommendation is to discuss plans for emoji/symbol use with SIG
 * Deactivate if stdout is not an interactive terminal
   * The component library can provide this check
 
@@ -419,7 +422,8 @@ CLI commands should utilize the [plugin runtime component library](https://githu
 
 Available output components:
 
-* Table
+* OutputWriter: This component in [plugin runtime component library](https://github.com/vmware-tanzu/tanzu-plugin-runtime/tree/main/component) is a useful component for producing consistent tabular output, as well as product output of sequential data in json or yaml format.
+* OutputWriterSpinner: This component in useful in augmenting log output with a spinner to indicate long-running activity.
 
 ------------------------------
 
@@ -515,11 +519,11 @@ Error: Namespace EXAMPLE not found. Try 'tanzu namespace list' to see available 
 
 Use context in error messages to ease recovery
 
-* If a parameter is invalid or missing, it is a chance to be helpful by telling the user exactly what they missed
+* If a parameter is invalid or missing, it is a chance to be helpful by telling the user exactly what was missed
 
-  ```sh
-  EXAMPLE “You forgot to enter the --name, apps in this namespace include App1, App2, etc...”
-  ```
+```sh
+"You forgot to enter the --name, apps in this namespace include App1, App2, etc..."
+```
 
 Make it easy to submit bug reports and feedback
 
@@ -530,13 +534,12 @@ Make it easy to submit bug reports and feedback
 
 ### Plugins
 
-For information about developing plugins, see the [Plugin Guide](../plugindev/main.md)
+For information about developing plugins, see the [Plugin Development Guide](../plugindev/main.md)
 
 ### Contributions to the Style Guide
 
-A styleguide is never done, and should change to meet the changing needs To
-propose changes please create an issue, and add it to the CLI SIG agenda to
-discuss.
+A styleguide is never done, and should change to meet the changing needs.
+To propose changes please create an issue labelled `documentation`, and outline the proposal.
 
 ------------------------------
 

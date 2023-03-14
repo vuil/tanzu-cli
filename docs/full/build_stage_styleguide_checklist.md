@@ -14,7 +14,7 @@ Each item in the checklist below has a high, medium, or low importance rating to
 
 ## Command Structure
 
-* [ ] **Do the commands follow [the design pattern](style_guide.md#designing-commands) described in the CLI Style Guide?**  (importance: high)
+* [ ] **Do the commands follow [the design pattern](style_guide.md#designing-commands) described in the CLI Style Guide?** (importance: high)
   * noun - verb - resource - flags
 * [ ] **Is the number of nested noun layers <= 2?** (importance: medium)
 * [ ] **Is the number of required flags <= 2?** (importance: medium)
@@ -22,12 +22,12 @@ Each item in the checklist below has a high, medium, or low importance rating to
 
 ## UI Text / Taxonomy
 
-* [ ] **If new nouns (resources) must be added to the [existing taxonomy](cli-wordlist.yml), have they been approved by the CLI SIG?** (importance: high)
-  * Please update the [existing taxonomy](cli-wordlist.yml) to include the new nouns
-* [ ] **If new verbs (actions) must be added to the [existing taxonomy](cli-wordlist.yml), have they been approved by the CLI SIG?**    (importance: high)
-  * Please update the [existing taxonomy](cli-wordlist.yml)  to include the new verbs
-* [ ] **Do any commands require adding new flags to the [existing taxonomy](cli-wordlist.yml)?** (importance: low)
-  * Please update the [existing taxonomy](cli-wordlist.yml)  to include the new flags
+* [ ] **Are there new nouns (resources) that should be added to the [existing taxonomy](taxonomy.md)?** (importance: high)
+  * If so, please update the [existing taxonomy](taxonomy.md) to include the new nouns
+* [ ] **Are there new verbs (actions) that should be added to the [existing taxonomy](taxonomy.md)?** (importance: high)
+  * If so, please update the [existing taxonomy](taxonomy.md) to include the new verbs
+* [ ] **Do any commands require adding new flags to the [existing taxonomy](taxonomy.md)?** (importance: low)
+  * If so, please update the [existing taxonomy](taxonomy.md) to include the new flags
 
 ## Design
 
