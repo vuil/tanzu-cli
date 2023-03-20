@@ -14,12 +14,6 @@ _DiscoverySource_ - Represents a group of plugin artifacts and their distributio
 
 _Catalog_ - A catalog holds the information of all currently installed plugins on a host OS.
 
-_Distribution_ - A distribution is a set of plugins that may exist across multiple repositories.
-
-_Groups_ - Plugin output is displayed within groups. Currently, Admin, Extra, Run, System, Version.
-
-_Builder_ - Builder scaffolds CLI plugins repositories and new plugins. Builds CLI plugins for the specified arch.
-
 ## Plugins
 
 The CLI is based on a plugin architecture. This architecture enables teams to build, own, and release their own piece of functionality as well as enable external partners to integrate with the system.

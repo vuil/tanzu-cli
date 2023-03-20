@@ -1,8 +1,6 @@
 # Tanzu CLI Documentation
 
-VVV
-
-## What is tanzu cli
+## What is Tanzu CLI
 
 ## Important Concepts
 
