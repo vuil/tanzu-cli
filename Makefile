@@ -40,13 +40,16 @@ VALE               := $(TOOLS_BIN_DIR)/vale
 MISSPELL           := $(TOOLS_BIN_DIR)/misspell
 CONTROLLER_GEN     := $(TOOLS_BIN_DIR)/controller-gen
 IMGPKG             := $(TOOLS_BIN_DIR)/imgpkg
+KCTRL              := $(TOOLS_BIN_DIR)/kctrl
+KBLD               := $(TOOLS_BIN_DIR)/kbld
+YTT                := $(TOOLS_BIN_DIR)/ytt
 KUBECTL            := $(TOOLS_BIN_DIR)/kubectl
 KIND               := $(TOOLS_BIN_DIR)/kind
 GINKGO             := $(TOOLS_BIN_DIR)/ginkgo
 COSIGN             := $(TOOLS_BIN_DIR)/cosign
 GOJUNITREPORT      := $(TOOLS_BIN_DIR)/go-junit-report
 
-TOOLING_BINARIES   := $(GOIMPORTS) $(GOLANGCI_LINT) $(VALE) $(MISSPELL) $(CONTROLLER_GEN) $(IMGPKG) $(KUBECTL) $(KIND) $(GINKGO) $(COSIGN) $(GOJUNITREPORT)
+TOOLING_BINARIES   := $(GOIMPORTS) $(GOLANGCI_LINT) $(VALE) $(MISSPELL) $(CONTROLLER_GEN) $(IMGPKG) $(KUBECTL) $(KIND) $(GINKGO) $(COSIGN) $(GOJUNITREPORT) $(KCTRL) $(YTT) $(KBLD)
 
 # Build and version information
 
