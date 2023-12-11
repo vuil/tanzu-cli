@@ -119,14 +119,14 @@ $(KCTRL):
 ytt: $(YTT) ## Install ytt
 $(YTT):
 	mkdir -p $(BIN_DIR)
-	curl -LO https://github.com/carvel-dev/kapp-controller/releases/download/$(YTT_VERSION)/ytt-$(HOST_OS)-$(HOST_ARCH)
+	curl -LO https://github.com/carvel-dev/ytt/releases/download/$(YTT_VERSION)/ytt-$(HOST_OS)-$(HOST_ARCH)
 	mv ytt-$(HOST_OS)-$(HOST_ARCH) $(@)
 	chmod a+x $(@)
 
 kbld: $(KBLD) ## Install kbld
 $(KBLD):
 	mkdir -p $(BIN_DIR)
-	curl -LO https://github.com/carvel-dev/kapp-controller/releases/download/$(KBLD_VERSION)/kbld-$(HOST_OS)-$(HOST_ARCH)
+	curl -LO https://github.com/carvel-dev/kbld/releases/download/$(KBLD_VERSION)/kbld-$(HOST_OS)-$(HOST_ARCH)
 	mv kbld-$(HOST_OS)-$(HOST_ARCH) $(@)
 	chmod a+x $(@)
 

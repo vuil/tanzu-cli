@@ -213,6 +213,14 @@ choco-package: ## Build a Chocolatey package
 	docker run --rm -e VERSION=$(BUILD_VERSION) -e SHA_FOR_CHOCO=$(SHA_FOR_CHOCO) -v $(ROOT_DIR):$(ROOT_DIR) $(CHOCO_IMAGE) $(ROOT_DIR)/hack/choco/build_package.sh
 
 ## --------------------------------------
+## Carvel Package
+## --------------------------------------
+.PHONY: crd-package
+crd-package: ## Build and release crd carvel package
+	$(ROOT_DIR)/hack/scripts/build-crd-package.sh
+
+
+## --------------------------------------
 ## Testing
 ## --------------------------------------
 
