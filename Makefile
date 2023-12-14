@@ -215,8 +215,8 @@ choco-package: ## Build a Chocolatey package
 ## --------------------------------------
 ## Carvel Package
 ## --------------------------------------
-.PHONY: crd-package
-crd-package: ## Build and release crd carvel package
+.PHONY: crd-package-for-test
+crd-package-for-test: tools ## Build and release crd carvel package for testing
 	$(ROOT_DIR)/hack/scripts/build-crd-package.sh
 
 
@@ -238,7 +238,7 @@ test-with-summary-report: tools
 	rm ./make_test.output ./test_suite_output.json ./CLI-ginkgo-tests-summary.txt ./CLI-junit-report.xml
 
 .PHONY: e2e-cli-core ## Execute all CLI Core E2E Tests
-e2e-cli-core: start-test-central-repo start-airgapped-local-registry e2e-cli-core-all ## Execute all CLI Core E2E Tests
+e2e-cli-core: crd-package-for-test start-test-central-repo start-airgapped-local-registry e2e-cli-core-all ## Execute all CLI Core E2E Tests
 
 .PHONY: setup-custom-cert-for-test-central-repo
 setup-custom-cert-for-test-central-repo: ## Setup up the custom ca cert for test-central-repo in the config file
