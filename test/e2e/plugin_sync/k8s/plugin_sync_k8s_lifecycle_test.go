@@ -5,7 +5,8 @@
 package pluginsynce2ek8s
 
 import (
-	//"fmt"
+	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -109,10 +110,32 @@ var _ = f.CLICoreDescribe("[Tests:E2E][Feature:Plugin-sync-lifecycle]", func() {
 			clusterInfo, err = f.CreateKindCluster(tf, f.ContextPrefixK8s+f.RandomNumber(4))
 			Expect(err).To(BeNil(), "should not get any error for KIND cluster creation")
 
-			kappyaml := "/Users/vuichiap/tanzu-cli-cln/test/e2e/config_data/kapp-controller.yaml"
+			//kappyaml := "/Users/vuichiap/tanzu-cli-cln/test/e2e/config_data/kapp-controller.yaml"
+			kappYAML := "../../../../package/test/kapp-controller.yaml"
+			packageYAML := "../../../../package/carvel-artifacts/packages/cliplugin.cli.tanzu.vmware.com/package.yml"
+			packageinstallYAML := "../../../../package/test/package-pi.yaml"
+
+			yamlPaths := []string{kappYAML}
+			yamlPaths2 := []string{packageYAML}
+			yamlPaths3 := []string{packageinstallYAML}
+
 			//err = f.ApplyConfigOnKindCluster(tf, clusterInfo, append(make([]string, 0), f.K8SCRDFilePath))
-			err = f.ApplyConfigOnKindCluster(tf, clusterInfo, append(make([]string, 0), kappyaml))
+
+			//err = f.ApplyConfigOnKindCluster(tf, clusterInfo, append(make([]string, 0), kappyaml))
+			err = f.ApplyConfigOnKindCluster(tf, clusterInfo, yamlPaths)
 			Expect(err).To(BeNil(), "should not get any error for config apply")
+
+			time.Sleep(40.0 * time.Second)
+
+			fmt.Printf("Apply package yaml")
+			err = f.ApplyConfigOnKindCluster(tf, clusterInfo, yamlPaths2)
+			Expect(err).To(BeNil(), "2should not get any error for config apply")
+
+			time.Sleep(1.0 * time.Second)
+
+			fmt.Printf("Apply package pi yaml")
+			err = f.ApplyConfigOnKindCluster(tf, clusterInfo, yamlPaths3)
+			Expect(err).To(BeNil(), "3should not get any error for config apply")
 		})
 		// Test case: b. apply CRD (cluster resource definition) and CR's (cluster resource) for few plugins
 		/*
