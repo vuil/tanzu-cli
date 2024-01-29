@@ -124,31 +124,37 @@ var _ = f.CLICoreDescribe("[Tests:E2E][Feature:Plugin-sync-lifecycle]", func() {
 			//tf.KindCluster.WaitForCondition(clusterInfo, uu
 
 			//err = f.ApplyConfigOnKindCluster(tf, clusterInfo, append(make([]string, 0), kappyaml))
+			fmt.Printf("   XXXXXXXXXX Apply kapp ctrller")
 			err = f.ApplyConfigOnKindCluster(tf, clusterInfo, yamlPaths)
 			Expect(err).To(BeNil(), "should not get any error for config apply")
 
 			var waitArgs []string
-			waitArgs = []string{"--for=condition=established", "crd", "packageinstalls.packaging.carvel.dev"}
+			waitArgs = []string{"--timeout=60s", "--for=condition=established", "crd", "packageinstalls.packaging.carvel.dev"}
 			//err = tf.KindCluster.WaitForCondition(clusterInfo, waitArgs)
 			err = tf.KindCluster.WaitForCondition(clusterInfo.ClusterKubeContext, waitArgs)
 			//err = f.WaitForClusterCondition(tf, clusterInfo, waitArgs)
 			Expect(err).To(BeNil(), "packageinstalls API should be available")
 
-			time.Sleep(30.0 * time.Second)
+			waitArgs = []string{"--timeout=60s", "--for=condition=established", "crd", "internalpackages.internal.packaging.carvel.dev"}
+			//err = tf.KindCluster.WaitForCondition(clusterInfo, waitArgs)
+			err = tf.KindCluster.WaitForCondition(clusterInfo.ClusterKubeContext, waitArgs)
+			Expect(err).To(BeNil(), "packages API should be available")
 
-			fmt.Printf("Apply package yaml")
+			time.Sleep(3.0 * time.Second)
+
+			fmt.Printf("   XXXXXXXXXX Apply package yaml")
 			err = f.ApplyConfigOnKindCluster(tf, clusterInfo, yamlPaths2)
 			Expect(err).To(BeNil(), "2should not get any error for config apply")
 
-			fmt.Printf("Apply package pi yaml")
+			fmt.Printf("   XXXXXXXXXXX Apply package pi yaml")
 			err = f.ApplyConfigOnKindCluster(tf, clusterInfo, yamlPaths3)
 			Expect(err).To(BeNil(), "3should not get any error for config apply")
 
-			waitArgs = []string{"--for=condition=established", "crd", "cliplugins.cli.tanzu.vmware.com"}
+			waitArgs = []string{"--timeout=60s", "--for=condition=established", "crd", "cliplugins.cli.tanzu.vmware.com"}
 			//err = tf.KindCluster.WaitForCondition(clusterInfo, waitArgs)
 			err = tf.KindCluster.WaitForCondition(clusterInfo.ClusterKubeContext, waitArgs)
 			//err = f.WaitForClusterCondition(tf, clusterInfo, waitArgs)
-			Expect(err).To(BeNil(), "cliplugings API should be available")
+			Expect(err).To(BeNil(), "cliplugins API should be available")
 		})
 
 		// Test case: b. apply CRD (cluster resource definition) and CR's (cluster resource) for few plugins
