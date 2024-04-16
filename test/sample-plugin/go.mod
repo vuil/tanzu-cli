@@ -2,6 +2,8 @@ module sample-plugin
 
 go 1.21
 
+replace github.com/vmware-tanzu/tanzu-plugin-runtime => ../../../tanzu-plugin-runtime
+
 require (
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10

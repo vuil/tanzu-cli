@@ -58,3 +58,11 @@ e2e-tests-sample-plugin-e2e-api:
 	export TANZU_CLI_CEIP_OPT_IN_PROMPT_ANSWER="No" ; \
 	export TANZU_CLI_EULA_PROMPT_ANSWER="Yes" ; \
 	${GINKGO} --keep-going --output-dir $(ROOT_DIR_RELATIVE)/testresults --json-report=results.json --keep-separate-reports --race --nodes=1 ${GOTEST_VERBOSE} -r $(ROOT_DIR_RELATIVE)/cmd/plugin/sample-plugin/test/e2e/framework_functionality  --trace > /tmp/out && { cat /tmp/out | grep -Ev 'STEP:|seconds|.go:'; rm /tmp/out; } || { exit_code=$$?; cat /tmp/out | grep -Ev 'STEP:|seconds|.go:'; rm /tmp/out; exit $$exit_code; } \
+
+.PHONY: install
+#install: test ## Install the plugin binaries to the local machine
+install: uninstall plugin-build-local plugin-install-local
+
+.PHONY: uninstall
+uninstall:
+	$(TZBIN) plugin delete sample -y > /dev/null 2>&1 || true
