@@ -563,7 +563,7 @@ For more details on the deprecation policy and process please refer to the
 ## Plugin Descriptor and support for command remapping
 
 The output of the plugin binary's `info` command reflects what is specified by
-in the plugin's [Plugin Descriptor](https://github.com/vmware-tanzu/tanzu-plugin-runtime/blob/main/plugin/types.go#L60)
+in the plugin's [Plugin Descriptor](https://github.com/vuil/tanzu-plugin-runtime/blob/remap_commandmap_autoaliasdesc/plugin/types.go#L88)
 
 ### CommandMap
 
@@ -572,6 +572,8 @@ EXPERIMENTAL: subject to change prior to the next official minor release
 The descriptor now supports an additional field `commandMap` that customizes
 how plugin's commands are shown in the CLI's command tree. Most plugin authors
 should not need to provide the mapping fields.
+
+see https://github.com/vuil/tanzu-plugin-runtime/blob/remap_commandmap_autoaliasdesc/plugin/types.go#L146
 
 The command map specifies one or more CommandMapEntry's and describes how one
 or more parts of the plugin's command tree will be remapped in the Tanzu CLI
