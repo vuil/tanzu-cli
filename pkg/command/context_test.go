@@ -23,7 +23,7 @@ import (
 	clientauthv1 "k8s.io/client-go/pkg/apis/clientauthentication/v1"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/vmware-tanzu/tanzu-cli/pkg/auth/csp"
+	"github.com/vmware-tanzu/tanzu-cli/pkg/auth/common"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/centralconfig"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/centralconfig/fakes"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/constants"
@@ -494,7 +494,7 @@ clusterOpts:
 					Auth: configtypes.GlobalServerAuth{
 						AccessToken: fakeAccessToken,
 						Issuer:      fakeIssuer,
-						Type:        csp.APITokenType,
+						Type:        common.APITokenType,
 					},
 				},
 			}
@@ -530,7 +530,7 @@ clusterOpts:
 		})
 		It("should return error if the authorization was done using id-token(CSP interactive login) and the access token refresh fails", func() {
 			tanzuContext.GlobalOpts.Auth.Expiration = time.Now().Add(-time.Hour)
-			tanzuContext.GlobalOpts.Auth.Type = csp.IDTokenType
+			tanzuContext.GlobalOpts.Auth.Type = common.IDTokenType
 
 			err = config.SetContext(tanzuContext, false)
 			Expect(err).To(BeNil())
