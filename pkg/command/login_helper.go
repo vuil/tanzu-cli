@@ -116,7 +116,6 @@ func isTanzuPlatformSaaSEndpoint(tpEndpoint string) bool {
 	}
 	saasEndpointRegularExpressions, _ := centralconfig.DefaultCentralConfigReader.GetTanzuPlatformSaaSEndpointList()
 	saasEndpointRegularExpressions = append(saasEndpointRegularExpressions, defaultSaaSEndpoints...)
-
 	for _, endpointRegex := range saasEndpointRegularExpressions {
 		if endpointRegex == "" {
 			continue
