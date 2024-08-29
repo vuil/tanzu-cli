@@ -126,7 +126,10 @@ func getCSPMetadataFromCentralConfig() TanzuCSPMetadata {
 // getCSPKnownIssuersEndpoints gets the CSP known issuer endpoints from central config as best effort,
 // If it fails to fetch data from central config, it returns the default values
 func getCSPKnownIssuersEndpoints() cspKnownIssuerEndpoints {
-	cspKnownIssuerEPs, _ := getCSPKnownEndpointsFromCentralConfig()
+	cspKnownIssuerEPs, err := getCSPKnownEndpointsFromCentralConfig()
+	if err == nil {
+		return cspKnownIssuerEPs
+	}
 
 	// If failed to get the CSP Known Issuer endpoints, use the defaults
 	for key := range DefaultKnownIssuers {

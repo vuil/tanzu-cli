@@ -38,10 +38,6 @@ const (
 
 	// LocalTPSMIssuer is the test TPSM issuer
 	LocalTPSMIssuer = "http://localhost:8080"
-
-	//nolint:gosec // Avoid "hardcoded credentials" false positive.
-	// APITokenKey is the env var for an API token override.
-	APITokenKey = "CSP_API_TOKEN"
 )
 
 var (
@@ -65,11 +61,6 @@ var (
 		ProdIssuerTCSP: {
 			AuthURL:   "https://console.tanzu.broadcom.com/csp/gateway/discovery",
 			TokenURL:  "https://console.tanzu.broadcom.com/csp/gateway/am/api/auth/authorize",
-			AuthStyle: oauth2.AuthStyleInHeader,
-		},
-		LocalTPSMIssuer: {
-			AuthURL:   "http://localhost:8080/oauth/authorize",
-			TokenURL:  "http://localhost:8080/oauth/token",
 			AuthStyle: oauth2.AuthStyleInHeader,
 		},
 	}

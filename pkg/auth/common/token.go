@@ -133,8 +133,7 @@ func ParseToken(tkn *oauth2.Token, idpType config.IdpType) (*Claims, error) {
 	if idpType == config.UAAIdpType {
 		// "scopes" is used instead of "perms" in uaa-based token
 		if p, ok = c[ClaimsScopes].([]interface{}); !ok {
-			fmt.Printf("mapClains = %+v\n", c)
-			log.Warning("could not cast groups")
+			log.Warning("could not cast scopes")
 		}
 		uname, ok = c[ClaimsUaaUserName].(string)
 		if !ok {
