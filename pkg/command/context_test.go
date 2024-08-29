@@ -934,15 +934,16 @@ type ContextListInfo struct {
 
 var _ = Describe("create new context", func() {
 	const (
-		existingContext          = "test-mc"
-		testKubeContext          = "test-k8s-context"
-		testKubeConfigPath       = "/fake/path/kubeconfig"
-		testContextName          = "fake-context-name"
-		fakeTMCEndpoint          = "tmc.cloud.vmware.com:443"
-		fakeTanzuEndpoint        = "https://fake.tanzu.cloud.vmware.com"
-		expectedTanzuHubEndpoint = "https://api.fake.tanzu.cloud.vmware.com/hub"
-		expectedTanzuUCPEndpoint = "https://ucp.fake.tanzu.cloud.vmware.com"
-		expectedTanzuTMCEndpoint = "https://ops.fake.tanzu.cloud.vmware.com"
+		existingContext            = "test-mc"
+		testKubeContext            = "test-k8s-context"
+		testKubeConfigPath         = "/fake/path/kubeconfig"
+		testContextName            = "fake-context-name"
+		fakeTMCEndpoint            = "tmc.cloud.vmware.com:443"
+		fakeTanzuEndpoint          = "https://fake.tanzu.cloud.vmware.com"
+		fakeAlternateTanzuEndpoint = "https://fake.acme.com"
+		expectedTanzuHubEndpoint   = "https://api.fake.tanzu.cloud.vmware.com/hub"
+		expectedTanzuUCPEndpoint   = "https://ucp.fake.tanzu.cloud.vmware.com"
+		expectedTanzuTMCEndpoint   = "https://ops.fake.tanzu.cloud.vmware.com"
 	)
 	var (
 		tkgConfigFile   *os.File
@@ -1120,7 +1121,7 @@ var _ = Describe("create new context", func() {
 				os.RemoveAll(tkgConfigFileNG.Name())
 				resetContextCommandFlags()
 			})
-			Context("with endpoint and context name provided", func() {
+			Context("with tanzu endpoint and context name provided", func() {
 				It("should create context with given endpoint and context name", func() {
 					endpoint = fakeTanzuEndpoint
 					ctxName = testContextName
@@ -1131,8 +1132,27 @@ var _ = Describe("create new context", func() {
 					Expect(ctx.GlobalOpts.Endpoint).To(Equal(expectedTanzuUCPEndpoint))
 					Expect(ctx.AdditionalMetadata[config.TanzuHubEndpointKey].(string)).To(Equal(expectedTanzuHubEndpoint))
 					Expect(ctx.AdditionalMetadata[config.TanzuMissionControlEndpointKey].(string)).To(Equal(expectedTanzuTMCEndpoint))
+					idpType := ctx.AdditionalMetadata[config.TanzuIdpTypeKey].(config.IdpType)
+					Expect(string(idpType)).To(ContainSubstring("csp"))
 				})
 			})
+			Context("with alternate tanzu endpoint and context name provided", func() {
+				It("should create uaa-based context with given endpoint and context name", func() {
+					endpoint = fakeAlternateTanzuEndpoint
+					ctxName = testContextName
+					ctx, err = createNewContext()
+					fmt.Printf("context failed!!! %v\n", err)
+					Expect(err).To(BeNil())
+					Expect(ctx.Name).To(ContainSubstring("fake-context-name"))
+					Expect(string(ctx.ContextType)).To(Equal(contextTypeTanzu))
+					Expect(ctx.GlobalOpts.Endpoint).To(Equal(expectedTanzuUCPEndpoint))
+					Expect(ctx.AdditionalMetadata[config.TanzuHubEndpointKey].(string)).To(Equal(expectedTanzuHubEndpoint))
+					Expect(ctx.AdditionalMetadata[config.TanzuMissionControlEndpointKey].(string)).To(Equal(expectedTanzuTMCEndpoint))
+					idpType := ctx.AdditionalMetadata[config.TanzuIdpTypeKey].(config.IdpType)
+					Expect(string(idpType)).To(ContainSubstring("uaa"))
+				})
+			})
+
 			Context("context name already exists", func() {
 				It("should return error", func() {
 					endpoint = fakeTanzuEndpoint
