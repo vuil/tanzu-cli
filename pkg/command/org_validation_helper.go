@@ -11,12 +11,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/vmware-tanzu/tanzu-plugin-runtime/config"
 	"github.com/vmware-tanzu/tanzu-plugin-runtime/log"
 
-	"github.com/vmware-tanzu/tanzu-cli/pkg/auth/csp"
+	"github.com/vmware-tanzu/tanzu-cli/pkg/auth/common"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/centralconfig"
-	cliconfig "github.com/vmware-tanzu/tanzu-cli/pkg/config"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/constants"
 )
 
@@ -32,7 +30,7 @@ type tapScopesGetter func() ([]string, error)
 // the central configuration. If the central configuration doesn't have any Tanzu Platform for Kubernetes scopes listed, it will return success.
 // It will skip the validation and return success if TANZU_CLI_SKIP_TANZU_CONTEXT_TAP_SCOPES_VALIDATION environment
 // variable is set to true
-func validateTokenForTAPScopes(claims *csp.Claims, scopesGetter tapScopesGetter) (bool, error) {
+func validateTokenForTAPScopes(claims *common.Claims, scopesGetter tapScopesGetter) (bool, error) {
 	if skipTAPScopeValidation, _ := strconv.ParseBool(os.Getenv(constants.SkipTAPScopesValidationOnTanzuContext)); skipTAPScopeValidation {
 		return true, nil
 	}
@@ -63,16 +61,9 @@ func validateTokenForTAPScopes(claims *csp.Claims, scopesGetter tapScopesGetter)
 }
 
 func getTAPScopesFromCentralConfig() ([]string, error) {
-	// We will get the central configuration from the default discovery source
-	discoverySource, err := config.GetCLIDiscoverySource(cliconfig.DefaultStandaloneDiscoveryName)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the Tanzu Platform for Kubernetes scopes from the central configuration
-	reader := centralconfig.NewCentralConfigReader(discoverySource)
+	// Get the Tanzu Platform for Kubernetes scopes from the default central configuration
 	var tapScopes []tapScope
-	err = reader.GetCentralConfigEntry(centralConfigTanzuApplicationPlatformScopesKey, &tapScopes)
+	err := centralconfig.DefaultCentralConfigReader.GetCentralConfigEntry(centralConfigTanzuApplicationPlatformScopesKey, &tapScopes)
 	if err != nil {
 		// If the key is not found in the central config, it does not return an error because some central repositories
 		// may choose not to have a central config file.

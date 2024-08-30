@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 
+	"github.com/vmware-tanzu/tanzu-cli/pkg/centralconfig"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/common"
 	"github.com/vmware-tanzu/tanzu-plugin-runtime/component"
 	"github.com/vmware-tanzu/tanzu-plugin-runtime/config"
@@ -34,9 +35,11 @@ import (
 	"github.com/vmware-tanzu/tanzu-plugin-runtime/log"
 	"github.com/vmware-tanzu/tanzu-plugin-runtime/plugin"
 
+	commonauth "github.com/vmware-tanzu/tanzu-cli/pkg/auth/common"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/auth/csp"
 	tanzuauth "github.com/vmware-tanzu/tanzu-cli/pkg/auth/tanzu"
 	tkgauth "github.com/vmware-tanzu/tanzu-cli/pkg/auth/tkg"
+	"github.com/vmware-tanzu/tanzu-cli/pkg/auth/uaa"
 	kubecfg "github.com/vmware-tanzu/tanzu-cli/pkg/auth/utils/kubeconfig"
 	wcpauth "github.com/vmware-tanzu/tanzu-cli/pkg/auth/wcp"
 	"github.com/vmware-tanzu/tanzu-cli/pkg/cli"
@@ -49,16 +52,16 @@ import (
 var (
 	stderrOnly, forceCSP, staging, onlyCurrent, skipTLSVerify, showAllColumns, shortCtx    bool
 	ctxName, endpoint, apiToken, kubeConfig, kubeContext, getOutputFmt, endpointCACertPath string
-	tanzuHubEndpoint                                                                       string
+
+	tanzuHubEndpoint, tanzuTMCEndpoint, tanzuUCPEndpoint, tanzuAuthEndpoint string
 
 	projectStr, projectIDStr, spaceStr, clustergroupStr string
 	contextTypeStr                                      string
 )
 
 const (
-	knownGlobalHost      = "cloud.vmware.com"
-	defaultTanzuEndpoint = "https://api.tanzu.cloud.vmware.com"
-	isPinnipedEndpoint   = "isPinnipedEndpoint"
+	knownGlobalHost    = "cloud.vmware.com"
+	isPinnipedEndpoint = "isPinnipedEndpoint"
 
 	contextNotExistsForContextType      = "The provided context '%v' does not exist or is not active for the given context type '%v'"
 	noActiveContextExistsForContextType = "There is no active context for the given context type '%v'"
@@ -68,6 +71,7 @@ const (
 
 	invalidTargetErrorForContextCommands = "invalid target specified. Please specify a correct value for the `--target` flag from 'kubernetes[k8s]/mission-control[tmc]'"
 	invalidContextType                   = "invalid context type specified. Please specify a correct value for the `--type/-t` flag from 'kubernetes[k8s]/mission-control[tmc]/tanzu'"
+	invalidIdpType                       = "invalid IDP type found."
 )
 
 // constants that define context creation types
@@ -108,7 +112,7 @@ func newContextCmd() *cobra.Command {
 	return contextCmd
 }
 
-func newCreateCtxCmd() *cobra.Command { //nolint:funlen
+func newCreateCtxCmd() *cobra.Command {
 	var createCtxCmd = &cobra.Command{
 		Use:               "create CONTEXT_NAME",
 		Short:             "Create a Tanzu CLI context",
@@ -190,7 +194,6 @@ func newCreateCtxCmd() *cobra.Command { //nolint:funlen
 	createCtxCmd.Flags().BoolVar(&stderrOnly, "stderr-only", false, "send all output to stderr rather than stdout")
 	createCtxCmd.Flags().BoolVar(&forceCSP, "force-csp", false, "force the context to use CSP auth")
 	createCtxCmd.Flags().BoolVar(&staging, "staging", false, "use CSP staging issuer")
-	createCtxCmd.Flags().StringVar(&tanzuHubEndpoint, "tanzu-hub-endpoint", "", "customize the Tanzu Hub endpoint associated with the context")
 
 	// Shell completion for this flag is the default behavior of doing file completion
 	createCtxCmd.Flags().StringVar(&endpointCACertPath, "endpoint-ca-certificate", "", "path to the endpoint public certificate")
@@ -204,7 +207,6 @@ func newCreateCtxCmd() *cobra.Command { //nolint:funlen
 	utils.PanicOnErr(createCtxCmd.Flags().MarkHidden("stderr-only"))
 	utils.PanicOnErr(createCtxCmd.Flags().MarkHidden("force-csp"))
 	utils.PanicOnErr(createCtxCmd.Flags().MarkHidden("staging"))
-	utils.PanicOnErr(createCtxCmd.Flags().MarkHidden("tanzu-hub-endpoint"))
 
 	createCtxCmd.MarkFlagsMutuallyExclusive("endpoint", "kubecontext")
 	createCtxCmd.MarkFlagsMutuallyExclusive("endpoint", "kubeconfig")
@@ -340,15 +342,6 @@ func isGlobalContext(endpoint string) bool {
 	return false
 }
 
-func isGlobalTanzuEndpoint(endpoint string) bool {
-	for _, hostStr := range []string{"api.tanzu.cloud.vmware.com", "api.tanzu-dev.cloud.vmware.com", "api.tanzu-stable.cloud.vmware.com "} {
-		if strings.Contains(endpoint, hostStr) {
-			return true
-		}
-	}
-	return false
-}
-
 func getPromptOpts() []component.PromptOpt {
 	var promptOpts []component.PromptOpt
 	if stderrOnly {
@@ -365,7 +358,7 @@ func createNewContext() (context *configtypes.Context, err error) {
 	var ctxCreationType ContextCreationType
 	contextType := getContextType()
 
-	if (contextType == configtypes.ContextTypeTanzu) || (endpoint != "" && isGlobalTanzuEndpoint(endpoint)) {
+	if (contextType == configtypes.ContextTypeTanzu) || (endpoint != "" && isTanzuPlatformSaaSEndpoint(endpoint)) {
 		ctxCreationType = contextTanzu
 	} else if (contextType == configtypes.ContextTypeTMC) || (endpoint != "" && isGlobalContext(endpoint)) {
 		ctxCreationType = contextMissionControl
@@ -409,6 +402,7 @@ func createContextUsingContextType(ctxCreationType ContextCreationType) (context
 	}
 	return ctxCreateFunc()
 }
+
 func createContextWithKubeconfig() (context *configtypes.Context, err error) {
 	promptOpts := getPromptOpts()
 	if kubeConfig == "" && kubeContext == "" {
@@ -557,9 +551,19 @@ func createContextWithClusterEndpoint() (context *configtypes.Context, err error
 	return context, err
 }
 
+// Unless forced to use CSP, use a heuristic based on the matching endpoint
+// with known patterns to determined the IDP used for authentication
+func getIDPType(endpoint string) config.IdpType {
+	if isTanzuPlatformSaaSEndpoint(endpoint) {
+		return config.CSPIdpType
+	}
+
+	return config.UAAIdpType
+}
+
 func createContextWithTanzuEndpoint() (context *configtypes.Context, err error) {
 	if endpoint == "" {
-		endpoint, err = promptEndpoint(defaultTanzuEndpoint)
+		endpoint, err = promptEndpoint(centralconfig.DefaultTanzuPlatformEndpoint)
 		if err != nil {
 			return context, err
 		}
@@ -580,17 +584,27 @@ func createContextWithTanzuEndpoint() (context *configtypes.Context, err error) 
 		return context, err
 	}
 
-	sanitizedEndpoint := sanitizeEndpoint(endpoint)
+	// At this point, we can assume that `endpoint` variable has been configured based on the user input
+	// So, use that as tanzuPlatform endpoint and setup other service endpoint variables
+	err = configureTanzuPlatformServiceEndpoints(endpoint)
+	if err != nil {
+		return context, err
+	}
+
 	// Tanzu context would have both CSP(GlobalOpts) auth details and kubeconfig(ClusterOpts),
 	context = &configtypes.Context{
 		Name:        ctxName,
 		ContextType: configtypes.ContextTypeTanzu,
-		GlobalOpts:  &configtypes.GlobalServer{Endpoint: sanitizedEndpoint},
+		GlobalOpts:  &configtypes.GlobalServer{Endpoint: tanzuUCPEndpoint},
 		ClusterOpts: &configtypes.ClusterServer{},
 		AdditionalMetadata: map[string]interface{}{
-			config.TanzuMissionControlEndpointKey: mapTanzuEndpointToTMCEndpoint(sanitizedEndpoint),
+			config.TanzuMissionControlEndpointKey: tanzuTMCEndpoint,
 			config.TanzuHubEndpointKey:            tanzuHubEndpoint,
+			config.TanzuIdpTypeKey:                getIDPType(endpoint),
 		},
+	}
+	if tanzuAuthEndpoint != "" {
+		context.AdditionalMetadata[config.TanzuAuthEndpointKey] = tanzuAuthEndpoint
 	}
 	return context, err
 }
@@ -624,6 +638,38 @@ func globalLogin(c *configtypes.Context) (err error) {
 }
 
 func globalTanzuLogin(c *configtypes.Context, generateContextNameFunc func(orgName, endpoint string, isStaging bool) string) error {
+	if c.AdditionalMetadata[config.TanzuIdpTypeKey] == config.CSPIdpType {
+		return globalTanzuLoginCSP(c, generateContextNameFunc)
+	} else if c.AdditionalMetadata[config.TanzuIdpTypeKey] == config.UAAIdpType {
+		return globalTanzuLoginUAA(c, generateContextNameFunc)
+	}
+	return errors.New(invalidIdpType)
+}
+
+func globalTanzuLoginUAA(c *configtypes.Context, generateContextNameFunc func(orgName, endpoint string, isStaging bool) string) error {
+	uaaEndpoint := c.AdditionalMetadata[config.TanzuAuthEndpointKey].(string)
+	log.V(7).Infof("Login to UAA endpoint: %s", uaaEndpoint)
+
+	claims, err := doInteractiveLoginAndUpdateContext(c, uaaEndpoint)
+	if err != nil {
+		return err
+	}
+
+	// UAA-based authentication does not provide org id or name yet
+	orgName := ""
+
+	if err := updateContextOnTanzuLogin(c, generateContextNameFunc, claims, orgName); err != nil {
+		return err
+	}
+
+	fmt.Fprintln(os.Stderr)
+	log.Successf("Successfully logged in to '%s' and created a tanzu context", endpoint)
+
+	return nil
+}
+
+func globalTanzuLoginCSP(c *configtypes.Context, generateContextNameFunc func(orgName, endpoint string, isStaging bool) string) error {
+	log.V(7).Infof("Login to CSP endpoint: %s", endpoint)
 	claims, err := doCSPAuthentication(c)
 	if err != nil {
 		return err
@@ -634,47 +680,8 @@ func globalTanzuLogin(c *configtypes.Context, generateContextNameFunc func(orgNa
 		return err
 	}
 
-	// Fetch the Tanzu Hub endpoint for the Tanzu context as a best case effort
-	if tanzuHubEndpoint == "" {
-		// If the TANZU_CLI_HUB_ENDPOINT is set just use the configured endpoint
-		if os.Getenv(constants.TPHubEndpoint) != "" {
-			tanzuHubEndpoint = os.Getenv(constants.TPHubEndpoint)
-		} else {
-			tanzuHubEndpoint, err = csp.GetTanzuHubEndpoint(claims.OrgID, c.GlobalOpts.Auth.AccessToken, staging)
-			if err != nil {
-				log.V(7).Infof("unable to get Tanzu Hub endpoint. Error: %v", err.Error())
-			}
-		}
-	} else {
-		log.Warningf("This tanzu context is being created with the custom Tanzu Hub endpoint: %q", tanzuHubEndpoint)
-	}
-
-	// update the context name using the context name generator
-	if generateContextNameFunc != nil {
-		c.Name = generateContextNameFunc(orgName, endpoint, staging)
-	}
-
-	// update the context metadata
-	if err := updateTanzuContextMetadata(c, claims.OrgID, orgName, tanzuHubEndpoint); err != nil {
+	if err := updateContextOnTanzuLogin(c, generateContextNameFunc, claims, orgName); err != nil {
 		return err
-	}
-
-	// Fetch the tanzu kubeconfig and update context
-	if err := updateContextWithTanzuKubeconfig(c, endpoint, claims.OrgID, endpointCACertPath, skipTLSVerify); err != nil {
-		return err
-	}
-
-	// Add the context to configuration
-	if err := config.AddContext(c, true); err != nil {
-		return err
-	}
-
-	// update the current context in the kubeconfig file after creating the context
-	if c.ClusterOpts != nil {
-		err = syncCurrentKubeContext(c)
-		if err != nil {
-			return errors.Wrap(err, "unable to update current kube context")
-		}
 	}
 
 	// format
@@ -689,6 +696,38 @@ func globalTanzuLogin(c *configtypes.Context, generateContextNameFunc func(orgNa
 	return nil
 }
 
+func updateContextOnTanzuLogin(c *configtypes.Context, generateContextNameFunc func(orgName, endpoint string, isStaging bool) string, claims *commonauth.Claims, orgName string) error {
+	// update the context name using the context name generator
+	if generateContextNameFunc != nil {
+		c.Name = generateContextNameFunc(orgName, tanzuUCPEndpoint, staging)
+	}
+
+	// update the context metadata
+	if err := updateTanzuContextMetadata(c, claims.OrgID, orgName); err != nil {
+		return err
+	}
+
+	// Fetch the tanzu kubeconfig and update context
+	if err := updateContextWithTanzuKubeconfig(c, tanzuUCPEndpoint, claims.OrgID, endpointCACertPath, skipTLSVerify); err != nil {
+		return err
+	}
+
+	// Add the context to configuration
+	if err := config.AddContext(c, true); err != nil {
+		return err
+	}
+
+	// update the current context in the kubeconfig file after creating the context
+	if c.ClusterOpts != nil {
+		err := syncCurrentKubeContext(c)
+		if err != nil {
+			return errors.Wrap(err, "unable to update current kube context")
+		}
+	}
+
+	return nil
+}
+
 func logTanzuInvalidOrgWarningMessage(orgName string) {
 	warnMsg := `WARNING: While authenticated to organization '%s', there are insufficient permissions to access
 the Tanzu Platform for Kubernetes service. Please ensure correct organization authentication and access permissions
@@ -699,7 +738,7 @@ the Tanzu Platform for Kubernetes service. Please ensure correct organization au
 }
 
 // updateTanzuContextMetadata updates the context additional metadata
-func updateTanzuContextMetadata(c *configtypes.Context, orgID, orgName, tanzuHubEndpoint string) error {
+func updateTanzuContextMetadata(c *configtypes.Context, orgID, orgName string) error {
 	exists, err := config.ContextExists(c.Name)
 	if err != nil {
 		return err
@@ -708,6 +747,7 @@ func updateTanzuContextMetadata(c *configtypes.Context, orgID, orgName, tanzuHub
 		c.AdditionalMetadata[config.OrgIDKey] = orgID
 		c.AdditionalMetadata[config.OrgNameKey] = orgName
 		c.AdditionalMetadata[config.TanzuHubEndpointKey] = tanzuHubEndpoint
+		c.AdditionalMetadata[config.TanzuMissionControlEndpointKey] = tanzuTMCEndpoint
 		return nil
 	}
 	// This is possible only for contexts created using "tanzu login" command because
@@ -720,13 +760,14 @@ func updateTanzuContextMetadata(c *configtypes.Context, orgID, orgName, tanzuHub
 	// which includes the org/project/space details.
 	c.AdditionalMetadata = existingContext.AdditionalMetadata
 	c.AdditionalMetadata[config.TanzuHubEndpointKey] = tanzuHubEndpoint
+	c.AdditionalMetadata[config.TanzuMissionControlEndpointKey] = tanzuTMCEndpoint
 
 	return nil
 }
 
 // getCSPOrganizationName returns the CSP Org name using the orgID from the claims.
 // It will return empty string if API fails
-func getCSPOrganizationName(c *configtypes.Context, claims *csp.Claims) (string, error) {
+func getCSPOrganizationName(c *configtypes.Context, claims *commonauth.Claims) (string, error) {
 	issuer := csp.GetIssuer(staging)
 	if c.GlobalOpts == nil {
 		return "", errors.New("invalid context %q. Missing authorization fields")
@@ -754,37 +795,49 @@ func updateContextWithTanzuKubeconfig(c *configtypes.Context, ep, orgID, epCACer
 	return nil
 }
 
-func doCSPAuthentication(c *configtypes.Context) (*csp.Claims, error) {
+func doCSPAuthentication(c *configtypes.Context) (*commonauth.Claims, error) {
 	apiTokenValue, apiTokenExists := os.LookupEnv(config.EnvAPITokenKey)
 	// Use API Token login flow if TANZU_API_TOKEN environment variable is set, else fall back to default interactive login flow
 	if apiTokenExists {
 		log.Info("API token env var is set")
 		return doCSPAPITokenAuthAndUpdateContext(c, apiTokenValue)
 	}
-	return doCSPInteractiveLoginAndUpdateContext(c)
+
+	issuer := csp.GetIssuer(staging)
+	return doInteractiveLoginAndUpdateContext(c, issuer)
 }
 
-func doCSPInteractiveLoginAndUpdateContext(c *configtypes.Context) (claims *csp.Claims, err error) {
+func doInteractiveLoginAndUpdateContext(c *configtypes.Context, issuerURL string) (claims *commonauth.Claims, err error) {
+	var token *commonauth.Token
+
 	logCSPOrgIDEnvVariableUsage()
-	issuer := csp.GetIssuer(staging)
 	cspOrgIDValue, cspOrgIDExists := os.LookupEnv(constants.CSPLoginOrgID)
-	var loginOptions []csp.LoginOption
+	var loginOptions []commonauth.LoginOption
 	if cspOrgIDExists && cspOrgIDValue != "" {
-		loginOptions = append(loginOptions, csp.WithOrgID(cspOrgIDValue))
+		loginOptions = append(loginOptions, commonauth.WithOrgID(cspOrgIDValue))
 	}
 	// If user chooses to use a specific local listener port, use it
-	loginOptions = append(loginOptions, csp.WithListenerPortFromEnv(constants.TanzuCLIOAuthLocalListenerPort))
-	token, err := csp.TanzuLogin(issuer, loginOptions...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get the token from CSP")
+	loginOptions = append(loginOptions, commonauth.WithListenerPortFromEnv(constants.TanzuCLIOAuthLocalListenerPort))
+
+	idpType := c.AdditionalMetadata[config.TanzuIdpTypeKey].(config.IdpType)
+	if idpType == config.CSPIdpType {
+		token, err = csp.TanzuLogin(issuerURL, loginOptions...)
+	} else if idpType == config.UAAIdpType {
+		token, err = uaa.TanzuLogin(issuerURL, loginOptions...)
+	} else {
+		return nil, errors.New(invalidIdpType)
 	}
-	claims, err = csp.ParseToken(&oauth2.Token{AccessToken: token.AccessToken})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get the token")
+	}
+
+	claims, err = commonauth.ParseToken(&oauth2.Token{AccessToken: token.AccessToken}, idpType)
 	if err != nil {
 		return nil, err
 	}
 
 	a := configtypes.GlobalServerAuth{}
-	a.Issuer = issuer
+	a.Issuer = issuerURL
 	a.UserName = claims.Username
 	a.Permissions = claims.Permissions
 	a.AccessToken = token.AccessToken
@@ -819,13 +872,13 @@ func logCSPOrgIDEnvVariableUsage() {
 	}
 }
 
-func doCSPAPITokenAuthAndUpdateContext(c *configtypes.Context, apiTokenValue string) (claims *csp.Claims, err error) {
+func doCSPAPITokenAuthAndUpdateContext(c *configtypes.Context, apiTokenValue string) (claims *commonauth.Claims, err error) {
 	issuer := csp.GetIssuer(staging)
 	token, err := csp.GetAccessTokenFromAPIToken(apiTokenValue, issuer)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get the token from CSP")
 	}
-	claims, err = csp.ParseToken(&oauth2.Token{AccessToken: token.AccessToken})
+	claims, err = commonauth.ParseToken(&oauth2.Token{AccessToken: token.AccessToken}, config.CSPIdpType)
 	if err != nil {
 		return nil, err
 	}
@@ -837,7 +890,7 @@ func doCSPAPITokenAuthAndUpdateContext(c *configtypes.Context, apiTokenValue str
 	a.AccessToken = token.AccessToken
 	a.IDToken = token.IDToken
 	a.RefreshToken = apiTokenValue
-	a.Type = csp.APITokenType
+	a.Type = commonauth.APITokenType
 	expiresAt := time.Now().Local().Add(time.Second * time.Duration(token.ExpiresIn))
 	a.Expiration = expiresAt
 	c.GlobalOpts.Auth = a
@@ -1266,8 +1319,10 @@ func printContext(writer io.Writer, ctx *configtypes.Context) {
 	if ctx.ContextType == configtypes.ContextTypeTanzu {
 		resources, err := config.GetTanzuContextActiveResource(ctx.Name)
 		if err == nil {
-			columns = append(columns, "Organization")
-			row = append(row, fmt.Sprintf("%s (%s)", resources.OrgName, resources.OrgID))
+			if resources.OrgID != "" {
+				columns = append(columns, "Organization")
+				row = append(row, fmt.Sprintf("%s (%s)", resources.OrgName, resources.OrgID))
+			}
 
 			columns = append(columns, "Project")
 			if resources.ProjectName != "" {
@@ -1730,8 +1785,19 @@ func getToken(cmd *cobra.Command, args []string) error {
 	if ctx.GlobalOpts == nil {
 		return errors.Errorf("invalid context %q . Missing the authorization fields in the context", name)
 	}
-	if csp.IsExpired(ctx.GlobalOpts.Auth.Expiration) {
-		_, err := csp.GetToken(&ctx.GlobalOpts.Auth)
+
+	if commonauth.IsExpired(ctx.GlobalOpts.Auth.Expiration) {
+		val, ok := ctx.AdditionalMetadata[config.TanzuIdpTypeKey].(string)
+		idpType := config.IdpType(val)
+		if !ok {
+			idpType = config.CSPIdpType
+		}
+		tokenGetter := uaa.GetTokens
+		if idpType == config.CSPIdpType {
+			tokenGetter = csp.GetTokens
+		}
+
+		_, err := commonauth.GetToken(&ctx.GlobalOpts.Auth, tokenGetter, idpType)
 		if err != nil {
 			return errors.Wrap(err, "failed to refresh the token")
 		}
@@ -2170,39 +2236,6 @@ func renderDynamicTable(slices interface{}, tableWriter component.OutputWriter, 
 		}
 	}
 	tableWriter.Render()
-}
-
-func mapTanzuEndpointToTMCEndpoint(tanzuEndpoint string) string {
-	// If the TANZU_CLI_K8S_OPS_ENDPOINT is set just return the configured endpoint
-	if os.Getenv(constants.TPKubernetesOpsEndpoint) != "" {
-		return os.Getenv(constants.TPKubernetesOpsEndpoint)
-	}
-
-	tmcEndpoint := ""
-	// Define the mapping rules
-	mappingRules := []struct {
-		tanzuEndpointPrefix string
-		tmcEndpointPrefix   string
-	}{
-		{"https://api.tanzu", "https://tmc.tanzu"},
-		{"https://ucp.platform", "https://ops.platform"},
-	}
-
-	// Iterate through the mapping rules
-	for _, rule := range mappingRules {
-		if strings.HasPrefix(tanzuEndpoint, rule.tanzuEndpointPrefix) {
-			// Replace the tanzuEndpointPrefix with the tmcEndpointPrefix
-			tmcEndpoint = strings.Replace(tanzuEndpoint, rule.tanzuEndpointPrefix, rule.tmcEndpointPrefix, 1)
-			break
-		}
-	}
-
-	// Check if the transformation was successful
-	if tanzuEndpoint == tmcEndpoint {
-		return ""
-	}
-
-	return tmcEndpoint
 }
 
 func isTableOutputFormat() bool {
